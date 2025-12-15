@@ -1,11 +1,8 @@
 <template>
   <div class="page">
     <TopBar />
-    <div class="content">
-      <aside class="left" v-show="leftPanelOpen">
-        <ShapeLibrary />
-      </aside>
-      <main class="center">
+    <div class="content" :class="{ aiClosed: !rightPanelOpen }">
+      <main class="editor">
         <CanvasStage />
       </main>
       <aside class="right" v-show="rightPanelOpen">
@@ -18,16 +15,14 @@
 <script>
 import { mapState } from 'vuex';
 import TopBar from '@/components/TopBar.vue';
-import ShapeLibrary from '@/components/ShapeLibrary.vue';
 import CanvasStage from '@/components/CanvasStage.vue';
 import AiPanel from '@/components/AiPanel.vue';
 
 export default {
   name: 'EditorLayout',
-  components: { TopBar, ShapeLibrary, CanvasStage, AiPanel },
+  components: { TopBar, CanvasStage, AiPanel },
   computed: {
     ...mapState({
-      leftPanelOpen: (state) => state.ui.leftPanelOpen,
       rightPanelOpen: (state) => state.ui.rightPanelOpen,
     }),
   },
@@ -44,14 +39,12 @@ export default {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 280px 1fr 360px;
+  grid-template-columns: 1fr 360px;
 }
-.left {
-  border-right: 1px solid #e9e9e9;
-  background: #fafafa;
-  overflow: auto;
+.content.aiClosed {
+  grid-template-columns: 1fr;
 }
-.center {
+.editor {
   overflow: hidden;
   background: #f5f7fb;
 }

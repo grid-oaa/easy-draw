@@ -4,37 +4,38 @@
 
 ## 1. 原型界面（来自 PNG 的布局拆解）
 
-页面为单页应用（SPA），整体三栏 + 顶部工具条布局：
+页面为单页应用（SPA），整体为「左侧绘图编辑器（draw.io） + 右侧 AI 助手」两栏布局；draw.io 在 iframe 内提供菜单/工具条/形状库/画布等完整编辑体验。
 
 ```
-┌────────────────────────── 顶部菜单/工具条 ──────────────────────────┐
-│ 绘图 形状 格式 插入 删除 | 撤销/重做 | 缩放 |            [保存]      │
-└───────────────────────────────────────────────────────────────────┘
-┌───────────────┬──────────────────────── 画布区域 ───────────────────┬───────────────┐
-│ 左侧：形状库    │ 网格画布/拖拽连线/选中编辑/缩放                      │ 右侧：AI 助手   │
-│ - 搜索框        │ - 节点/连线                                          │ - 会话/提示词    │
-│ - 分类列表      │ - 选中后的控制点/对齐线                               │ - 生成状态/模型   │
-│ - 常用形状      │                                                      │ - 一键应用结果    │
-└───────────────┴────────────────────────────────────────────────────┴───────────────┘
+┌────────────────────────── 顶部 App 栏（可选） ──────────────────────────┐
+│ 文件名/版本 | 保存 | 导出 | 视图（切换 AI 面板）                          │
+└────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────── 左侧：draw.io 编辑器（iframe） ──────────────────────────┬───────────────┐
+│ draw.io 内部 UI：菜单/工具条 + 形状库 + 画布 + 缩放/撤销/重做/样式面板等             │ 右侧：AI 助手   │
+│ - 形状库搜索/分类（通用/杂项/高级/基本/箭头…）                                      │ - 会话/提示词    │
+│ - 网格画布、拖拽连线、选中编辑、对齐线、样式编辑                                     │ - 生成状态/模型   │
+│ - 内置导出/打印/导入等（可按需隐藏/接管）                                           │ - 一键应用结果    │
+└───────────────────────────────────────────────────────────────────────────────┴───────────────┘
 ```
 
-### 1.1 顶部菜单/工具条（Top Bar）
-- 菜单：`绘图 / 形状 / 格式 / 插入 / 删除`（可下拉）
-- 常用操作：撤销、重做、缩放（放大/缩小/适配）、保存
-- 状态展示：当前文件名、是否已保存、缩放比例（如 60%）
+### 1.1 顶部 App 栏（可选）
+- MVP 建议：尽量避免与 draw.io 内部菜单/工具条重复
+- 保留应用级能力：文件名/版本、保存（触发 draw.io `save`）、导出（触发 draw.io `export`）、打开/新建、AI 面板开关
+- 撤销/重做/缩放等“画布级能力”优先使用 draw.io 自带 UI（或通过 postMessage 转发为快捷键/命令）
 
-### 1.2 左侧形状库（Shape Library）
-- 搜索：按名称/标签检索形状
-- 分类：`通用 / 杂项 / 高级 / 基本 / 箭头`（与 PNG 一致）
-- 列表区：可拖拽到画布；支持收藏/最近使用
-- 图标集：内置 **AWS 图标库**（用于快速画架构图）
+### 1.2 左侧绘图编辑器（Draw.io Embed）
+- draw.io 作为“左侧整块编辑区”的承载者：同时覆盖原本的「形状库 + 画布区域」
+- draw.io 内置能力：
+  - 形状库：搜索、分类、拖拽、连接器等
+  - 画布：网格/缩放、节点与连线编辑、对齐与分布、样式与文本编辑
+  - 文件：导入/导出（svg/png/drawio）、页面管理等
+- 应用与 draw.io 的边界：
+  - 应用负责：保存到云端/版本控制/权限、列表页与预览、AI 能力与“应用结果”
+  - draw.io 负责：绝大多数交互编辑与渲染
 
-### 1.3 画布区域（Canvas）
-- 无限画布 + 网格背景（可开关）
-- 节点/连线：拖拽创建、拉线连接、自动吸附到锚点
-- 编辑：移动、缩放、旋转（按形状支持）、文本编辑、样式编辑（颜色/线宽/字体/阴影）
-- 多选：框选、多选对齐/分布、组合/取消组合
-- 历史：Undo/Redo（与 AI 变更同一套历史栈）
+### 1.3 自研画布的取舍（备选）
+- MVP：以 draw.io embed 为主（见 6.2 方案 B），快速获得完整编辑器体验
+- 后续增强：若必须实现“节点/边级别 AI Patch、协作、强约束布局”等深度能力，再迁移或并行引入 6.2 方案 A（`@maxgraph/core`）
 
 ### 1.4 右侧 AI 助手（AI Panel）
 - 产品入口：`easy draw`（原型右侧标题）
@@ -87,9 +88,12 @@ flowchart LR
 - `title`: string
 - `createdAt` / `updatedAt`: ISO string
 - `version`: number（乐观锁）
+- `format`: `"json" | "drawio"`（推荐 MVP 先用 `drawio`，后续如需再演进 `json`）
 - `canvas`: `{ width?: number; height?: number; grid: boolean; zoom: number }`
-- `nodes`: Node[]
-- `edges`: Edge[]
+- `drawioXml?`: string（当 `format="drawio"` 时，存 `.drawio`/`mxfile` XML 源数据）
+- `previewSvg?`: string（可选：保存时同步导出 SVG，用于列表缩略图/只读预览）
+- `nodes?`: Node[]（当 `format="json"` 时使用）
+- `edges?`: Edge[]（当 `format="json"` 时使用）
 - `stylePreset`: `"aws" | "default" | ...`
 
 ### 4.2 Node（节点）
@@ -109,14 +113,17 @@ flowchart LR
 - `style`: `{ stroke?: string; dashed?: boolean; arrow?: "none"|"end"|"both" }`
 
 ### 4.4 AI Patch（AI 返回的变更指令）
-- `operations`: Array<
-  - `{ op: "addNode"; node: Node }`
-  - `{ op: "addEdge"; edge: Edge }`
-  - `{ op: "updateNode"; id: string; patch: Partial<Node> }`
-  - `{ op: "deleteNode"; id: string }`
-  - `{ op: "autoLayout"; algorithm: "dagre" | "elk" | "grid" }`
-  - `{ op: "applyStylePreset"; preset: "aws" | "default" }`
->
+- 当 `format="json"`：返回结构化 operations（便于撤销/重做与精细控制）
+  - `operations`: Array<
+    - `{ op: "addNode"; node: Node }`
+    - `{ op: "addEdge"; edge: Edge }`
+    - `{ op: "updateNode"; id: string; patch: Partial<Node> }`
+    - `{ op: "deleteNode"; id: string }`
+    - `{ op: "autoLayout"; algorithm: "dagre" | "elk" | "grid" }`
+    - `{ op: "applyStylePreset"; preset: "aws" | "default" }`
+  >
+- 当 `format="drawio"`（MVP 更现实）：AI 直接返回一份新的 `drawioXml`（前端加载进 draw.io 编辑器）
+  - `drawioXml`: string
 - `explain`: string（给右侧面板展示的自然语言说明）
 
 ## 5. API 设计（建议）
@@ -130,8 +137,10 @@ flowchart LR
 
 ### 5.2 AI
 - `POST /api/ai/patch`
-  - 输入：`{ prompt, diagramSnapshot, selection?, stylePreset }`
-  - 输出：`AiPatch`
+  - 输入（建议按 format 区分）：
+    - `format="drawio"`：`{ prompt, drawioXml, selectionHint?, stylePreset }`
+    - `format="json"`：`{ prompt, diagramSnapshot, selection?, stylePreset }`
+  - 输出：`AiPatch`（见 4.4）
 
 ### 5.3 存储策略（推荐）
 - 小图：Diagram JSON 直接存 DynamoDB（单条不超过 400KB）
@@ -149,9 +158,29 @@ flowchart LR
 - 代码质量：`ESLint` + `Prettier`
 
 ### 6.2 绘图引擎与布局
-- 图编辑：优先 `@maxgraph/core`（mxGraph/Draw.io 同源技术路线，利于做“类 draw.io”体验）
-- 自动布局：`dagre` 或 `elkjs`（用于 AI 自动排版与“美化布局”）
-- 导出：`svg` 原生导出 + `html-to-image`（辅助生成 png）
+- 方案 B（推荐 MVP）：嵌入 `diagrams.net（draw.io）` 编辑器进行渲染与编辑
+  - 前端用 `iframe` 打开 embed 模式，通过 `postMessage` 与编辑器通讯（加载/保存/导出）
+  - 布局约束：draw.io iframe 覆盖“左侧整块编辑区”（包含形状库 + 画布），应用只保留右侧 AI 面板与少量应用级操作
+  - 存储以 `.drawio` 的 `mxfile` XML 为主（`drawioXml`），可选在保存时导出 `previewSvg` 用于列表缩略图
+  - 导出：通过 embed API 请求导出 `svg/png`（前端拿到导出结果后上传 S3），或由后端提供导出中转
+  - 代价/限制：对图元的“程序化细粒度操作”不如自研引擎顺手；AI 变更更适合“生成整图 XML 并重载”，撤销粒度通常变粗
+- 方案 A（后续增强）：基于 `@maxgraph/core` 自研/深度集成画布
+  - 优点：AI Patch 可精确到节点/边级别并复用同一套历史栈；更易做协作、约束布局与自定义交互
+  - 需要投入：画布交互、选择/对齐、连线规则、导出、性能优化等都需要自研
+- 自动布局（可选）：`dagre` 或 `elkjs`（用于 AI 自动排版与“美化布局”，方案 A 更容易落地）
+
+#### 6.2.1 `diagrams.net（draw.io）` Embed 集成要点（建议）
+- 访问方式：
+  - 快速验证：直接使用官方 `embed.diagrams.net`（依赖外网与可用性）
+  - 生产/内网：建议自托管 diagrams.net 静态站点（与业务同域，避免跨域与可用性风险）
+- 通讯模型：`iframe` + `window.postMessage`
+  - 前端发：`load`（加载已有 `drawioXml`）、`export`（导出 `svg/png`）、`save`（触发保存）
+  - 前端收：`save`（拿到最新 `drawioXml`）、`export`（拿到导出结果）、`exit`/`error`
+  - 实现时需校验 `origin`，并对消息做白名单过滤（避免被任意页面 postMessage 注入）
+- AI 接入建议（MVP）：
+  - 从编辑器获取当前 `drawioXml` → 传给后端与 `prompt`
+  - 后端让 LLM 输出“完整的新 `drawioXml`”（而不是细粒度操作），前端直接 `load` 回编辑器
+  - 取舍：实现快、鲁棒性取决于 XML 生成质量；撤销/重做粒度通常只能做到“一次 AI 变更 = 一次整体替换”
 
 ### 6.3 UI 与样式
 - UI 组件：`Element UI`（Vue2 生态成熟；用于表单、按钮、抽屉、消息提示）
@@ -170,7 +199,7 @@ src/
   store/               # Vuex（含编辑器模块/AI 模块）
   layouts/             # 全局布局（顶部栏/三栏布局）
   views/               # 页面级视图（列表/编辑/设置）
-  editor/              # 画布、形状库、工具条、历史栈
+  editor/              # draw.io iframe 容器与通讯封装、应用级快捷键/状态
   ai/                  # 右侧 AI 面板、会话、patch 预览/应用
   api/                 # 请求封装与类型
   assets/icons/aws/    # AWS 图标集

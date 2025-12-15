@@ -17,8 +17,11 @@
     </div>
 
     <div class="chat">
-      <div class="msg ai">输入需求，我会返回可应用到画布的变更指令（占位）。</div>
+      <div class="msg ai">
+        输入需求后将当前 draw.io XML 发给后端，后端返回新的 XML，我会直接加载到画布里。
+      </div>
       <div class="msg user" v-if="lastUser">{{ lastUser }}</div>
+      <div class="msg ai" v-if="lastExplain">{{ lastExplain }}</div>
     </div>
 
     <div class="composer">
@@ -30,13 +33,18 @@
       />
       <div class="actions">
         <el-button size="mini" @click="clear">清空</el-button>
-        <el-button type="primary" size="mini" @click="send">发送</el-button>
+        <el-button type="primary" size="mini" :loading="aiBusy" @click="send">发送</el-button>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { mapState, mapMutations } from 'vuex';
+
+import { requestAiPatch } from '@/api/ai';
+import { STYLE_PRESET } from '@/shared/constants';
+
 export default {
   name: 'AiPanel',
   data() {
@@ -45,7 +53,15 @@ export default {
       lastUser: '',
     };
   },
+  computed: {
+    ...mapState({
+      drawioXml: (state) => state.editor.drawioXml,
+      aiBusy: (state) => state.editor.aiBusy,
+      lastExplain: (state) => state.editor.lastExplain,
+    }),
+  },
   methods: {
+    ...mapMutations(['setAiBusy', 'setLastExplain', 'setDirty', 'requestCanvasAction']),
     noop() {},
     prefill() {
       this.prompt = '将当前图转换为 AWS 风格，并自动排版对齐。';
@@ -53,12 +69,32 @@ export default {
     clear() {
       this.prompt = '';
     },
-    send() {
+    async send() {
       const value = this.prompt.trim();
       if (!value) return;
       this.lastUser = value;
       this.prompt = '';
-      this.$message.info('已发送（占位实现）');
+
+      this.setAiBusy(true);
+      try {
+        const res = await requestAiPatch({
+          format: 'drawio',
+          prompt: value,
+          drawioXml: this.drawioXml,
+          stylePreset: STYLE_PRESET.AWS,
+        });
+
+        const nextXml = res && typeof res.drawioXml === 'string' ? res.drawioXml : '';
+        if (!nextXml) throw new Error('AI 未返回 drawioXml');
+
+        this.setLastExplain((res && res.explain) || '已生成，可一键应用到画布。');
+        this.requestCanvasAction({ type: 'load', payload: { xml: nextXml } });
+        this.setDirty(true);
+      } catch (e) {
+        this.$message.error(e.message || 'AI 请求失败');
+      } finally {
+        this.setAiBusy(false);
+      }
     },
   },
 };
