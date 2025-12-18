@@ -1,0 +1,31 @@
+# Maven / build outputs
+target/
+*.log
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Java artifacts
+*.class
+*.jar
+*.war
+*.ear
+
+# Spring / tooling
+.springBeans
+
