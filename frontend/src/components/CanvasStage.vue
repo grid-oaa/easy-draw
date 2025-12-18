@@ -16,8 +16,7 @@
 <script>
 import { mapState, mapMutations } from 'vuex';
 
-import { loadDraftDiagram, saveDraftDiagram } from '@/api/localDiagramStore';
-import { getDrawioBaseUrl, getDrawioOrigin } from '@/shared/drawio';
+import { getDrawioBaseUrl, getDrawioOrigin, EMPTY_DRAWIO_XML } from '@/shared/drawio';
 
 export default {
   name: 'CanvasStage',
@@ -60,14 +59,6 @@ export default {
     },
   },
   mounted() {
-    const draft = loadDraftDiagram();
-    if (draft) {
-      this.setFileName(draft.title || 'Untitled');
-      this.setDiagramId(draft.id || 'draft');
-      this.setVersion(draft.version || 0);
-      this.setDrawioXml(draft.drawioXml);
-    }
-
     window.addEventListener('message', this.onMessage);
   },
   beforeDestroy() {
@@ -81,6 +72,7 @@ export default {
       'setVersion',
       'setDrawioXml',
       'setSaving',
+      'resetAiChat',
     ]),
     postToEditor(message) {
       const frame = this.$refs.frame;
@@ -121,6 +113,48 @@ export default {
       const base = (value || 'diagram').trim() || 'diagram';
       return base.replace(/[\\/:*?"<>|]/g, '_');
     },
+    ensureDrawioFileName(name) {
+      const safe = this.sanitizeFileName(name || 'diagram');
+      return safe.toLowerCase().endsWith('.drawio') ? safe : `${safe}.drawio`;
+    },
+    async saveDrawioToLocalFile(xml) {
+      const fileName = this.ensureDrawioFileName(this.fileName);
+
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: fileName,
+            types: [
+              {
+                description: 'Draw.io Diagram',
+                accept: {
+                  'application/xml': ['.drawio', '.xml'],
+                },
+              },
+            ],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(new Blob([xml], { type: 'application/xml;charset=utf-8' }));
+          await writable.close();
+          if (handle && handle.name) this.setFileName(handle.name.replace(/\.drawio$/i, ''));
+          return true;
+        } catch (e) {
+          if (e && (e.name === 'AbortError' || e.code === 20)) return false;
+          throw e;
+        }
+      }
+
+      const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
+      const link = document.createElement('a');
+      link.rel = 'noopener';
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      return true;
+    },
     downloadExport(payload) {
       const format = payload && payload.format ? payload.format : '';
       const data = payload && typeof payload.data === 'string' ? payload.data : '';
@@ -155,7 +189,7 @@ export default {
       if (link.href.startsWith('blob:')) URL.revokeObjectURL(link.href);
       this.$message.success(`已导出 ${format.toUpperCase()}`);
     },
-    onMessage(evt) {
+    async onMessage(evt) {
       if (this.drawioOrigin && evt.origin !== this.drawioOrigin) return;
 
       let msg = evt.data;
@@ -180,7 +214,13 @@ export default {
       }
 
       if (msg.event === 'init') {
+        const isReload = this.ready;
         this.ready = true;
+        if (isReload) {
+          this.setDrawioXml(EMPTY_DRAWIO_XML);
+          this.setDirty(false);
+          this.resetAiChat();
+        }
         this.postToEditor({ action: 'load', xml: this.drawioXml });
         this.flushPendingActions();
         return;
@@ -195,22 +235,24 @@ export default {
         const xml = msg.xml;
         if (typeof xml === 'string' && xml) this.setDrawioXml(xml);
 
-        const nextVersion = (this.version || 0) + 1;
-        const diagram = {
-          id: this.diagramId || 'draft',
-          title: this.fileName || 'Untitled',
-          format: 'drawio',
-          drawioXml: typeof xml === 'string' && xml ? xml : this.drawioXml,
-          version: nextVersion,
-          updatedAt: new Date().toISOString(),
-        };
-
-        this.setDiagramId(diagram.id);
-        this.setVersion(diagram.version);
-        saveDraftDiagram(diagram);
-        this.setSaving(false);
-        this.setDirty(false);
-        this.$message.success('已保存');
+        try {
+          const ok = await this.saveDrawioToLocalFile(
+            typeof xml === 'string' && xml ? xml : this.drawioXml,
+          );
+          if (ok) {
+            this.setSaving(false);
+            this.setDirty(false);
+            this.postToEditor({ action: 'status', message: 'Saved' });
+            this.$message.success('已保存为 .drawio 文件');
+          } else {
+            this.setSaving(false);
+            this.postToEditor({ action: 'status', message: 'Cancelled' });
+          }
+        } catch (e) {
+          this.setSaving(false);
+          this.postToEditor({ action: 'status', message: 'Error' });
+          this.$message.error(e.message || '保存失败');
+        }
         return;
       }
 

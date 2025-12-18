@@ -10,6 +10,9 @@ export default new Vuex.Store({
     ui: {
       rightPanelOpen: true,
     },
+    ai: {
+      resetNonce: 0,
+    },
     editor: {
       dirty: false,
       fileName: 'Untitled',
@@ -52,6 +55,9 @@ export default new Vuex.Store({
     requestCanvasAction(state, canvasAction) {
       state.editor.canvasActionNonce += 1;
       state.editor.canvasAction = canvasAction;
+    },
+    resetAiChat(state) {
+      state.ai.resetNonce += 1;
     },
     toggleRightPanel(state) {
       state.ui.rightPanelOpen = !state.ui.rightPanelOpen;

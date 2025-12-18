@@ -9,47 +9,20 @@
         <span class="file">{{ fileName }}</span>
         <span class="dirty" v-if="dirty">未保存</span>
       </div>
-      <el-dropdown trigger="click" @command="exportAs">
-        <el-button size="mini">导出<i class="el-icon-arrow-down el-icon--right" /></el-button>
-        <el-dropdown-menu slot="dropdown">
-          <el-dropdown-item command="svg">SVG</el-dropdown-item>
-          <el-dropdown-item command="png">PNG</el-dropdown-item>
-        </el-dropdown-menu>
-      </el-dropdown>
-      <el-button type="primary" size="mini" :loading="saving" @click="save">保存</el-button>
-      <el-button size="mini" @click="toggleAi">{{
-        rightPanelOpen ? '隐藏 AI' : '显示 AI'
-      }}</el-button>
     </div>
   </div>
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex';
+import { mapState } from 'vuex';
 
 export default {
   name: 'TopBar',
   computed: {
     ...mapState({
       dirty: (state) => state.editor.dirty,
-      saving: (state) => state.editor.saving,
       fileName: (state) => state.editor.fileName,
-      rightPanelOpen: (state) => state.ui.rightPanelOpen,
     }),
-  },
-  methods: {
-    ...mapMutations(['setSaving', 'requestCanvasAction', 'toggleRightPanel']),
-    save() {
-      if (this.saving) return;
-      this.setSaving(true);
-      this.requestCanvasAction({ type: 'save' });
-    },
-    exportAs(format) {
-      this.requestCanvasAction({ type: 'export', payload: { format } });
-    },
-    toggleAi() {
-      this.toggleRightPanel();
-    },
   },
 };
 </script>
