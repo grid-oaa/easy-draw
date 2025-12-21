@@ -9,7 +9,6 @@ public class GenerateDiagramRequest {
    */
   private String language;
 
-  @NotBlank
   private String diagramType;
 
   @NotBlank
@@ -39,4 +38,3 @@ public class GenerateDiagramRequest {
     this.prompt = prompt;
   }
 }
-

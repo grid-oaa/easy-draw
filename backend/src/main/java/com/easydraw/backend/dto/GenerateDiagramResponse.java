@@ -11,7 +11,11 @@ public class GenerateDiagramResponse {
   private String explain;
 
   public static GenerateDiagramResponse of(
-      String language, String diagramType, String content, ValidationResult validation, String explain) {
+      String language,
+      String diagramType,
+      String content,
+      ValidationResult validation,
+      String explain) {
     GenerateDiagramResponse res = new GenerateDiagramResponse();
     res.setLanguage(language);
     res.setDiagramType(diagramType);
@@ -96,4 +100,3 @@ public class GenerateDiagramResponse {
     }
   }
 }
-

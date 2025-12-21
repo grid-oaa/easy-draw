@@ -6,6 +6,7 @@ import com.easydraw.backend.diagram.DiagramLanguageStrategy;
 import com.easydraw.backend.dto.DiagramError;
 import com.easydraw.backend.dto.GenerateDiagramRequest;
 import com.easydraw.backend.dto.GenerateDiagramResponse;
+import com.easydraw.backend.mermaid.MermaidSanitizer;
 import com.easydraw.backend.service.DiagramGenerationService;
 import java.util.EnumMap;
 import java.util.List;
@@ -34,7 +35,10 @@ public class DiagramGenerationServiceImpl implements DiagramGenerationService {
     DiagramGenerationInput input =
         new DiagramGenerationInput(language, request.getDiagramType(), request.getPrompt());
 
-    String content = strategy.generate(input);
+    String content = stripCodeFence(strategy.generate(input));
+    if (language == DiagramLanguage.MERMAID) {
+      content = MermaidSanitizer.clean(content);
+    }
     List<DiagramError> errors = strategy.validate(content, input);
 
     GenerateDiagramResponse.ValidationResult validation =
@@ -43,7 +47,25 @@ public class DiagramGenerationServiceImpl implements DiagramGenerationService {
             : GenerateDiagramResponse.ValidationResult.fail(errors);
 
     String explain = errors.isEmpty() ? "已生成" : "校验失败";
-    return GenerateDiagramResponse.of(language.getCode(), request.getDiagramType(), content, validation, explain);
+
+    return GenerateDiagramResponse.of(
+        language.getCode(), request.getDiagramType(), content, validation, explain);
+  }
+
+  private String stripCodeFence(String raw) {
+    if (raw == null) return "";
+    String trimmed = raw.trim();
+    if (trimmed.startsWith("```")) {
+      // remove leading fence
+      int idx = trimmed.indexOf('\n');
+      if (idx > 0) {
+        trimmed = trimmed.substring(idx + 1);
+      }
+      // remove trailing fence
+      if (trimmed.endsWith("```")) {
+        trimmed = trimmed.substring(0, trimmed.length() - 3);
+      }
+    }
+    return trimmed.trim();
   }
 }
-

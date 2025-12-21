@@ -1,10 +1,10 @@
 server:
   port: 8080
-
 spring:
   application:
     name: easy-draw-backend
-
+  profiles:
+    include: local
 management:
   endpoints:
     web:

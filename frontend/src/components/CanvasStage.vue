@@ -24,6 +24,9 @@ export default {
     return {
       ready: false,
       pendingActions: [],
+      lastChangeAt: 0,
+      lastMermaidAckAt: 0,
+      pendingMermaidImportAt: 0,
     };
   },
   computed: {
@@ -46,6 +49,9 @@ export default {
       url.searchParams.set('configure', '1');
       url.searchParams.set('noExitBtn', '1');
       url.searchParams.set('libraries', '1');
+      url.searchParams.set('plugins', '1');
+      url.searchParams.set('p', 'mermaid-import');
+      url.searchParams.set('dev', '1');
 
       return url.toString();
     },
@@ -59,6 +65,9 @@ export default {
     },
   },
   mounted() {
+    // Debug: verify iframe URL uses the expected draw.io base.
+    // eslint-disable-next-line no-console
+    console.log('[drawio] iframe src:', this.iframeSrc);
     window.addEventListener('message', this.onMessage);
   },
   beforeDestroy() {
@@ -102,6 +111,34 @@ export default {
       if (action.type === 'export') {
         const format = action.payload && action.payload.format ? action.payload.format : 'svg';
         this.postToEditor({ action: 'export', format, spin: '1' });
+        return;
+      }
+
+      if (action.type === 'import') {
+        const format = action.payload && action.payload.format ? action.payload.format : 'xml';
+        const data = action.payload && action.payload.data ? action.payload.data : '';
+        if (!data) return;
+        if (format === 'mermaid') {
+          const requestedAt = Date.now();
+          this.pendingMermaidImportAt = requestedAt;
+          this.postToEditor({
+            action: 'importMermaid',
+            mermaid: data,
+          });
+          setTimeout(() => {
+            if (
+              this.pendingMermaidImportAt === requestedAt &&
+              this.lastMermaidAckAt < requestedAt
+            ) {
+              this.$message.error(
+                'Mermaid import not acknowledged. Ensure mermaid-import plugin is loaded.',
+              );
+            }
+          }, 1200);
+          return;
+        }
+        this.postToEditor({ action: 'import', format, data });
+        return;
       }
     },
     flushPendingActions() {
@@ -208,6 +245,7 @@ export default {
           config: {
             defaultFonts: ['Helvetica', 'Arial', 'Microsoft YaHei'],
             darkMode: false,
+            plugins: ['mermaid'],
           },
         });
         return;
@@ -227,7 +265,17 @@ export default {
       }
 
       if (msg.event === 'change') {
+        this.lastChangeAt = Date.now();
         this.setDirty(true);
+        return;
+      }
+
+      if (msg.event === 'importMermaid') {
+        this.lastMermaidAckAt = Date.now();
+        this.pendingMermaidImportAt = 0;
+        if (!msg.success) {
+          this.$message.error(msg.error || 'Mermaid import failed in draw.io.');
+        }
         return;
       }
 

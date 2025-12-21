@@ -6,8 +6,7 @@
 
     <div class="right">
       <div class="meta">
-        <span class="file">{{ fileName }}</span>
-        <span class="dirty" v-if="dirty">Êú™‰øùÂ≠ò</span>
+        <span class="dirty" v-if="dirty">Œ¥±£¥Ê</span>
       </div>
     </div>
   </div>
@@ -21,7 +20,6 @@ export default {
   computed: {
     ...mapState({
       dirty: (state) => state.editor.dirty,
-      fileName: (state) => state.editor.fileName,
     }),
   },
 };
@@ -54,12 +52,6 @@ export default {
   gap: 8px;
   color: #666;
   font-size: 12px;
-}
-.file {
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .dirty {
   color: #e6a23c;

@@ -19,7 +19,7 @@ public class BasicMermaidValidator implements MermaidValidator {
 
     String trimmed = mermaid.trim();
     if (!looksLikeMermaidHeader(trimmed)) {
-      errors.add(DiagramError.of("HEADER_MISSING", "缺少 Mermaid 图表头（例如 flowchart TD / sequenceDiagram）"));
+      errors.add(DiagramError.of("HEADER_MISSING", "缺少 Mermaid 图表头（例如 flowchart TD / sequenceDiagram"));
     }
 
     if (countChar(trimmed, '[') != countChar(trimmed, ']')) {
@@ -30,20 +30,37 @@ public class BasicMermaidValidator implements MermaidValidator {
       errors.add(DiagramError.of("PAREN_MISMATCH", "圆括号数量不匹配"));
     }
 
-    if (diagramType != null && diagramType.toLowerCase().contains("flow") && !trimmed.contains("flowchart")) {
-      errors.add(DiagramError.of("TYPE_MISMATCH", "diagramType 期望为 flowchart，但未检测到 flowchart 头"));
+    if (diagramType != null && diagramType.toLowerCase().contains("flow")) {
+      String lower = trimmed.toLowerCase();
+      if (!lower.contains("flowchart") && !lower.contains("graph")) {
+        errors.add(DiagramError.of("TYPE_MISMATCH", "diagramType expects flowchart or graph"));
+      }
     }
 
     return errors;
   }
 
   private boolean looksLikeMermaidHeader(String text) {
-    String firstLine = text.split("\\R", 2)[0].trim().toLowerCase();
-    return firstLine.startsWith("flowchart")
-        || firstLine.startsWith("sequencediagram")
-        || firstLine.startsWith("statediagram")
-        || firstLine.startsWith("classdiagram")
-        || firstLine.startsWith("erdiagram");
+    String[] lines = text.split("\\R");
+    for (String raw : lines) {
+      String line = raw.trim().toLowerCase();
+      if (line.isEmpty() || line.equals("```") || line.equals("mermaid")) {
+        continue;
+      }
+      if (line.startsWith("flowchart")
+          || line.startsWith("graph")
+          || line.startsWith("sequencediagram")
+          || line.startsWith("statediagram")
+          || line.startsWith("classdiagram")
+          || line.startsWith("erdiagram")) {
+        return true;
+      }
+      // 只检查第一条非空非 fence �?      break;
+    }
+
+    // 兜底：在全文中找到任意合法头
+    String lower = text.toLowerCase();
+    return lower.contains("flowchart") || lower.contains("sequencediagram") || lower.contains("statediagram");
   }
 
   private int countChar(String text, char c) {
@@ -54,4 +71,5 @@ public class BasicMermaidValidator implements MermaidValidator {
     return count;
   }
 }
+
 

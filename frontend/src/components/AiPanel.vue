@@ -2,7 +2,7 @@
   <div class="panel">
     <div class="topbar">
       <div class="brand">
-        <div class="logo">⌘</div>
+        <div class="logo">ED</div>
         <div class="title">easy draw</div>
       </div>
       <div class="topActions">
@@ -18,9 +18,17 @@
           class="msg"
           :class="{ ai: m.role === 'ai', user: m.role === 'user' }"
         >
-          <div class="bubble">{{ m.text }}</div>
-          <div class="msgActions" v-if="m.role === 'ai'">
-            <button class="iconBtn" type="button" title="复制" @click="copy(m.text)">
+          <div class="bubble">
+            <template v-if="m.role === 'ai' && m.code">
+              <details class="codeToggle">
+                <summary>Show diagram code</summary>
+                <pre class="codeBlock">{{ m.code }}</pre>
+              </details>
+            </template>
+            <template v-else>{{ m.text }}</template>
+          </div>
+          <div class="msgActions">
+            <button class="iconBtn" type="button" title="Copy" @click="copy(m.code || m.text)">
               <i class="el-icon-document-copy" />
             </button>
           </div>
@@ -34,14 +42,14 @@
         type="textarea"
         :rows="3"
         resize="none"
-        placeholder="描述你的示意图或上传文件……"
+        placeholder="请描述你要生成的图表..."
         @keydown.native.enter.exact.prevent="send"
       />
       <div class="composerBar">
         <input ref="file" class="file" type="file" @change="onFile" />
         <el-button class="sendBtn" type="primary" :loading="aiBusy" @click="send">
           <i class="el-icon-position" />
-          发送
+          Send
         </el-button>
       </div>
     </div>
@@ -51,12 +59,13 @@
 <script>
 import { mapState, mapMutations } from 'vuex';
 
-import { requestAiPatch } from '@/api/ai';
-import { STYLE_PRESET } from '@/shared/constants';
+import { generateDiagram } from '@/api/ai';
 
 function makeId() {
   return `m_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
+
+const CHAT_STORAGE_KEY = 'easy_draw_ai_messages_v1';
 
 export default {
   name: 'AiPanel',
@@ -65,18 +74,14 @@ export default {
       prompt: '',
       mode: 'diagram',
       shapeMode: false,
-      messages: [
-        {
-          id: 'm0',
-          role: 'ai',
-          text: '描述你的需求后，我会把当前 draw.io 的 XML 发给后端，后端返回新的 XML，我将其直接加载回画布。',
-        },
-      ],
+      messages: [],
     };
+  },
+  created() {
+    this.loadMessages();
   },
   computed: {
     ...mapState({
-      drawioXml: (state) => state.editor.drawioXml,
       aiBusy: (state) => state.editor.aiBusy,
       aiResetNonce: (state) => state.ai.resetNonce,
     }),
@@ -84,26 +89,21 @@ export default {
   watch: {
     aiResetNonce() {
       this.prompt = '';
-      this.messages = [
-        {
-          id: 'm0',
-          role: 'ai',
-          text: '描述你的需求后，我会把当前 draw.io 的 XML 发给后端，后端返回新的 XML，我将其直接加载回画布。',
-        },
-      ];
+      this.messages = [];
+      this.saveMessages();
     },
   },
   methods: {
-    ...mapMutations(['setAiBusy', 'setLastExplain', 'setDirty', 'requestCanvasAction']),
+    ...mapMutations(['setAiBusy', 'setLastExplain', 'requestCanvasAction']),
     noop() {},
     about() {
-      this.$message.info('关于：AI + draw.io 原型（前端示例）');
+      this.$message.info('About: AI + draw.io prototype (frontend demo)');
     },
     setMode(command) {
       this.mode = command;
     },
     prefill() {
-      this.prompt = '将当前图转换为 AWS 风格，并自动排版对齐。';
+      this.prompt = 'Convert the diagram to AWS style and auto layout.';
     },
     clear() {
       this.prompt = '';
@@ -117,11 +117,18 @@ export default {
     },
     onFile(e) {
       const file = e && e.target && e.target.files ? e.target.files[0] : null;
-      if (file) this.$message.info(`已选择文件：${file.name}（占位）`);
+      if (file) this.$message.info(`Selected file: ${file.name} (placeholder)`);
       if (e && e.target) e.target.value = '';
     },
     append(role, text) {
       this.messages.push({ id: makeId(), role, text });
+      this.saveMessages();
+      this.$nextTick(() => this.scrollToBottom());
+    },
+    appendCode(role, content) {
+      const code = content || '';
+      this.messages.push({ id: makeId(), role, text: '', code });
+      this.saveMessages();
       this.$nextTick(() => this.scrollToBottom());
     },
     scrollToBottom() {
@@ -129,13 +136,35 @@ export default {
       if (!el) return;
       el.scrollTop = el.scrollHeight;
     },
+    loadMessages() {
+      try {
+        const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+        if (!raw) {
+          this.messages = [];
+          return;
+        }
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          this.messages = parsed;
+        }
+      } catch {
+        // Ignore invalid localStorage content.
+      }
+    },
+    saveMessages() {
+      try {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(this.messages));
+      } catch {
+        // Ignore storage errors (quota, privacy mode).
+      }
+    },
     async copy(text) {
       const value = String(text || '');
       if (!value) return;
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(value);
-          this.$message.success('已复制');
+          this.$message.success('Copied');
           return;
         }
       } catch {
@@ -152,9 +181,9 @@ export default {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        this.$message.success('已复制');
+        this.$message.success('Copied');
       } catch {
-        this.$message.error('复制失败');
+        this.$message.error('Copy failed');
       }
     },
     async send() {
@@ -167,24 +196,25 @@ export default {
 
       this.setAiBusy(true);
       try {
-        const res = await requestAiPatch({
-          format: 'drawio',
+        const res = await generateDiagram({
+          language: 'mermaid',
+          diagramType: '',
           prompt: value,
-          drawioXml: this.drawioXml,
-          stylePreset: STYLE_PRESET.AWS,
-          mode: this.mode,
         });
 
-        const nextXml = res && typeof res.drawioXml === 'string' ? res.drawioXml : '';
-        if (!nextXml) throw new Error('AI 未返回 drawioXml');
+        if (!res || !res.content) throw new Error('Empty result');
 
-        const explain = (res && res.explain) || '已生成，可一键应用到画布。';
-        this.setLastExplain(explain);
-        this.requestCanvasAction({ type: 'load', payload: { xml: nextXml } });
-        this.setDirty(true);
-        this.append('ai', explain);
+        this.setLastExplain(res.explain || 'Generated');
+        this.appendCode('ai', res.content);
+
+        if (res.language === 'mermaid' && res.content) {
+          this.requestCanvasAction({
+            type: 'import',
+            payload: { format: 'mermaid', data: res.content },
+          });
+        }
       } catch (e) {
-        this.$message.error(e.message || 'AI 请求失败');
+        this.$message.error(e.message || 'AI request failed');
       } finally {
         this.setAiBusy(false);
       }
@@ -333,6 +363,21 @@ export default {
   background: #fff;
   color: #111;
 }
+.codeToggle summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #111;
+  outline: none;
+}
+.codeBlock {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f7f7f7;
+  border: 1px solid #e5e5e5;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
 .msg.user .bubble {
   background: #1f2937;
   color: #fff;
@@ -357,6 +402,9 @@ export default {
   padding: 10px 12px 12px;
   border-top: 1px solid #f0f0f0;
   background: #fff;
+}
+.controls {
+  display: none;
 }
 .composerBar {
   margin-top: 8px;
