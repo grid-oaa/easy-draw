@@ -10,6 +10,8 @@ public class UpdateMermaidRequest {
 
   private String diagramType;
 
+  private ModelConfig modelConfig;
+
   public String getPrompt() {
     return prompt;
   }
@@ -32,5 +34,13 @@ public class UpdateMermaidRequest {
 
   public void setDiagramType(String diagramType) {
     this.diagramType = diagramType;
+  }
+
+  public ModelConfig getModelConfig() {
+    return modelConfig;
+  }
+
+  public void setModelConfig(ModelConfig modelConfig) {
+    this.modelConfig = modelConfig;
   }
 }

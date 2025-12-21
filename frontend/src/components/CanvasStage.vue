@@ -30,6 +30,7 @@ export default {
       lastMermaidInsertAckAt: 0,
       pendingMermaidInsertAt: 0,
       mermaidPluginReady: false,
+      pendingSaveFormat: '',
     };
   },
   computed: {
@@ -334,6 +335,15 @@ export default {
         if (typeof xml === 'string' && xml) this.setDrawioXml(xml);
 
         try {
+          await this.$msgbox({
+            title: '保存',
+            message: '请选择保存格式',
+            showCancelButton: true,
+            confirmButtonText: '保存为 .drawio',
+            cancelButtonText: '保存为 PNG',
+            distinguishCancelAndClose: true,
+            type: 'info',
+          });
           const ok = await this.saveDrawioToLocalFile(
             typeof xml === 'string' && xml ? xml : this.drawioXml,
           );
@@ -347,6 +357,16 @@ export default {
             this.postToEditor({ action: 'status', message: 'Cancelled' });
           }
         } catch (e) {
+          if (e === 'cancel') {
+            this.pendingSaveFormat = 'png';
+            this.postToEditor({ action: 'export', format: 'png', spin: '1' });
+            return;
+          }
+          if (e === 'close') {
+            this.setSaving(false);
+            this.postToEditor({ action: 'status', message: 'Cancelled' });
+            return;
+          }
           this.setSaving(false);
           this.postToEditor({ action: 'status', message: 'Error' });
           this.$message.error(e.message || '保存失败');
@@ -356,6 +376,13 @@ export default {
 
       if (msg.event === 'export') {
         this.downloadExport(msg);
+        if (this.pendingSaveFormat === 'png') {
+          this.pendingSaveFormat = '';
+          this.setSaving(false);
+          this.setDirty(false);
+          this.postToEditor({ action: 'status', message: 'Saved' });
+          this.$message.success('已保存为 PNG 图片');
+        }
         return;
       }
 

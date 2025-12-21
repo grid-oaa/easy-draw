@@ -6,6 +6,7 @@
         <div class="title">easy draw</div>
       </div>
       <div class="topActions">
+        <el-button type="text" icon="el-icon-setting" @click="openModelConfig">Model</el-button>
         <el-button type="text" icon="el-icon-more" @click="noop" />
       </div>
     </div>
@@ -57,12 +58,39 @@
       <div class="composerBar">
         <input ref="file" class="file" type="file" @change="onFile" />
         <el-button class="clearBtn" @click="confirmClear">清空</el-button>
-        <el-button class="sendBtn" type="primary" :loading="aiBusy" @click="send">
+        <el-button
+          class="sendBtn"
+          type="primary"
+          :loading="aiBusy"
+          :disabled="!hasModelConfig"
+          @click="send"
+        >
           <i class="el-icon-position" />
           Send
         </el-button>
       </div>
     </div>
+
+    <el-dialog title="模型设置" :visible.sync="modelConfigVisible" width="420px">
+      <el-form label-position="top">
+        <el-form-item label="Base URL">
+          <el-input
+            v-model="modelConfig.baseUrl"
+            placeholder="https://api.openai.com/v1/chat/completions"
+          />
+        </el-form-item>
+        <el-form-item label="API Key">
+          <el-input v-model="modelConfig.apiKey" type="password" show-password />
+        </el-form-item>
+        <el-form-item label="Model">
+          <el-input v-model="modelConfig.model" placeholder="glm-4.6v-flash" />
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="modelConfigVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveModelConfig">保存</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -78,6 +106,7 @@ function makeId() {
 
 const CHAT_STORAGE_KEY = 'easy_draw_ai_messages_v1';
 const MERMAID_STORAGE_KEY = 'easy_draw_last_mermaid_v1';
+const MODEL_CONFIG_KEY = 'easy_draw_model_config_v1';
 const EDIT_HINTS = [
   '修改',
   '调整',
@@ -106,17 +135,27 @@ export default {
       shapeMode: false,
       messages: [],
       lastMermaid: '',
+      modelConfigVisible: false,
+      modelConfig: {
+        baseUrl: '',
+        apiKey: '',
+        model: '',
+      },
     };
   },
   created() {
     this.loadMessages();
     this.loadLastMermaid();
+    this.loadModelConfig();
   },
   computed: {
     ...mapState({
       aiBusy: (state) => state.editor.aiBusy,
       aiResetNonce: (state) => state.ai.resetNonce,
     }),
+    hasModelConfig() {
+      return Boolean(this.modelConfig.baseUrl && this.modelConfig.apiKey);
+    },
   },
   watch: {
     aiResetNonce() {
@@ -148,6 +187,18 @@ export default {
     triggerUpload() {
       const el = this.$refs.file;
       if (el && el.click) el.click();
+    },
+    openModelConfig() {
+      this.modelConfigVisible = true;
+    },
+    saveModelConfig() {
+      if (!this.modelConfig.baseUrl || !this.modelConfig.apiKey) {
+        this.$message.warning('请填写 Base URL 和 API Key');
+        return;
+      }
+      this.saveModelConfigToStorage();
+      this.modelConfigVisible = false;
+      this.$message.success('模型配置已保存');
     },
     onFile(e) {
       const file = e && e.target && e.target.files ? e.target.files[0] : null;
@@ -232,6 +283,29 @@ export default {
         // Ignore storage errors.
       }
     },
+    loadModelConfig() {
+      try {
+        const raw = localStorage.getItem(MODEL_CONFIG_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          this.modelConfig = {
+            baseUrl: parsed.baseUrl || '',
+            apiKey: parsed.apiKey || '',
+            model: parsed.model || '',
+          };
+        }
+      } catch {
+        // Ignore storage errors.
+      }
+    },
+    saveModelConfigToStorage() {
+      try {
+        localStorage.setItem(MODEL_CONFIG_KEY, JSON.stringify(this.modelConfig));
+      } catch {
+        // Ignore storage errors.
+      }
+    },
     saveMessages() {
       try {
         localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(this.messages));
@@ -271,6 +345,11 @@ export default {
       if (this.aiBusy) return;
       const value = this.prompt.trim();
       if (!value) return;
+      if (!this.hasModelConfig) {
+        this.modelConfigVisible = true;
+        this.$message.warning('请先设置模型配置');
+        return;
+      }
 
       this.prompt = '';
       this.append('user', value);
@@ -283,11 +362,13 @@ export default {
               diagramType: '',
               prompt: value,
               mermaid: this.lastMermaid,
+              modelConfig: this.modelConfig,
             })
           : await generateDiagram({
               language: 'mermaid',
               diagramType: '',
               prompt: value,
+              modelConfig: this.modelConfig,
             });
 
         if (!res || !res.content) throw new Error('Empty result');

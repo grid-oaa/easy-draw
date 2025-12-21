@@ -1,47 +1,46 @@
 package com.easydraw.backend.ai;
 
 import com.easydraw.backend.diagram.DiagramLanguage;
+import com.easydraw.backend.dto.ModelConfig;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
-import reactor.core.publisher.Mono;
 
 @Component
 @Primary
-@ConditionalOnProperty(prefix = "bigmodel", name = "api-key")
 public class BigModelAiClient implements AiClient {
 
   private static final Logger log = LoggerFactory.getLogger(BigModelAiClient.class);
 
   private final BigModelProperties props;
-  private final WebClient client;
-
   public BigModelAiClient(BigModelProperties props) {
     this.props = props;
-    this.client =
-        WebClient.builder()
-            .baseUrl(props.getBaseUrl())
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + props.getApiKey())
-            .build();
   }
 
   @Override
-  public String generate(DiagramLanguage language, String diagramType, String prompt) {
+  public String generate(
+      DiagramLanguage language, String diagramType, String prompt, ModelConfig modelConfig) {
+    EffectiveConfig config = resolveConfig(modelConfig);
+    WebClient client =
+        WebClient.builder()
+            .baseUrl(config.baseUrl)
+            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + config.apiKey)
+            .build();
+
     String mergedPrompt = buildPrompt(language, diagramType, prompt);
 
     Map<String, Object> body = new HashMap<>();
-    body.put("model", props.getModel());
+    body.put("model", config.model);
     body.put(
         "messages",
         List.of(
@@ -90,6 +89,41 @@ public class BigModelAiClient implements AiClient {
       return "你是图表生成助手，只输出 PlantUML 代码，不要额外文字。";
     }
     return "你是图表生成助手，只输出 Mermaid 代码，不要额外文字。";
+  }
+
+  private EffectiveConfig resolveConfig(ModelConfig modelConfig) {
+    String baseUrl =
+        pick(modelConfig == null ? null : modelConfig.getBaseUrl(), props.getBaseUrl());
+    String apiKey = pick(modelConfig == null ? null : modelConfig.getApiKey(), props.getApiKey());
+    String model = pick(modelConfig == null ? null : modelConfig.getModel(), props.getModel());
+
+    if (isBlank(baseUrl) || isBlank(apiKey)) {
+      throw new IllegalStateException("Missing model configuration.");
+    }
+    if (isBlank(model)) {
+      model = "glm-4.6v-flash";
+    }
+    return new EffectiveConfig(baseUrl, apiKey, model);
+  }
+
+  private static String pick(String primary, String fallback) {
+    return isBlank(primary) ? fallback : primary;
+  }
+
+  private static boolean isBlank(String value) {
+    return value == null || value.trim().isEmpty();
+  }
+
+  private static class EffectiveConfig {
+    private final String baseUrl;
+    private final String apiKey;
+    private final String model;
+
+    private EffectiveConfig(String baseUrl, String apiKey, String model) {
+      this.baseUrl = baseUrl;
+      this.apiKey = apiKey;
+      this.model = model;
+    }
   }
 
   // DTO for response

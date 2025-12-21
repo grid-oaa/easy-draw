@@ -14,6 +14,8 @@ public class GenerateDiagramRequest {
   @NotBlank
   private String prompt;
 
+  private ModelConfig modelConfig;
+
   public String getLanguage() {
     return language;
   }
@@ -36,5 +38,13 @@ public class GenerateDiagramRequest {
 
   public void setPrompt(String prompt) {
     this.prompt = prompt;
+  }
+
+  public ModelConfig getModelConfig() {
+    return modelConfig;
+  }
+
+  public void setModelConfig(ModelConfig modelConfig) {
+    this.modelConfig = modelConfig;
   }
 }

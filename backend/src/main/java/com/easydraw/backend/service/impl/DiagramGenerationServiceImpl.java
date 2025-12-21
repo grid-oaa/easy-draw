@@ -34,7 +34,8 @@ public class DiagramGenerationServiceImpl implements DiagramGenerationService {
     if (strategy == null) throw new IllegalStateException("No strategy for language: " + language);
 
     DiagramGenerationInput input =
-        new DiagramGenerationInput(language, request.getDiagramType(), request.getPrompt());
+        new DiagramGenerationInput(
+            language, request.getDiagramType(), request.getPrompt(), request.getModelConfig());
 
     String content = stripCodeFence(strategy.generate(input));
     if (language == DiagramLanguage.MERMAID) {
@@ -62,7 +63,9 @@ public class DiagramGenerationServiceImpl implements DiagramGenerationService {
     String existing = MermaidSanitizer.clean(request.getMermaid());
     String prompt = buildMermaidEditPrompt(existing, request.getPrompt());
 
-    DiagramGenerationInput input = new DiagramGenerationInput(language, request.getDiagramType(), prompt);
+    DiagramGenerationInput input =
+        new DiagramGenerationInput(
+            language, request.getDiagramType(), prompt, request.getModelConfig());
     String content = stripCodeFence(strategy.generate(input));
     content = MermaidSanitizer.clean(content);
     List<DiagramError> errors = strategy.validate(content, input);

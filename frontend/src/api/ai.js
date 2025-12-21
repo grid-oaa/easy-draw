@@ -7,7 +7,7 @@ export async function requestAiPatch(payload) {
 
 /**
  * 生成绘图语言文本（后端 /api/ai/diagram）
- * @param {{ language?: string, diagramType: string, prompt: string }} payload
+ * @param {{ language?: string, diagramType: string, prompt: string, modelConfig?: object }} payload
  * @returns {Promise<{ language: string, diagramType: string, content: string, validation: object, explain: string }>}
  */
 export async function generateDiagram(payload) {
@@ -17,7 +17,7 @@ export async function generateDiagram(payload) {
 
 /**
  * Edit an existing Mermaid diagram.
- * @param {{ diagramType?: string, prompt: string, mermaid: string }} payload
+ * @param {{ diagramType?: string, prompt: string, mermaid: string, modelConfig?: object }} payload
  * @returns {Promise<{ language: string, diagramType: string, content: string, validation: object, explain: string }>}
  */
 export async function editMermaidDiagram(payload) {

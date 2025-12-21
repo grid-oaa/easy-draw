@@ -27,7 +27,8 @@ public class MermaidStrategy implements DiagramLanguageStrategy {
 
   @Override
   public String generate(DiagramGenerationInput input) {
-    return aiClient.generate(input.getLanguage(), input.getDiagramType(), input.getPrompt());
+    return aiClient.generate(
+        input.getLanguage(), input.getDiagramType(), input.getPrompt(), input.getModelConfig());
   }
 
   @Override
@@ -35,4 +36,3 @@ public class MermaidStrategy implements DiagramLanguageStrategy {
     return mermaidValidator.validate(content, input.getDiagramType());
   }
 }
-
