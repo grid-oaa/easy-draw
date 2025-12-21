@@ -29,3 +29,5 @@ Thumbs.db
 # Spring / tooling
 .springBeans
 
+# Local overrides
+application-local.yml
