@@ -14,3 +14,13 @@ export async function generateDiagram(payload) {
   const res = await http.post('/ai/diagram', payload);
   return res.data;
 }
+
+/**
+ * Edit an existing Mermaid diagram.
+ * @param {{ diagramType?: string, prompt: string, mermaid: string }} payload
+ * @returns {Promise<{ language: string, diagramType: string, content: string, validation: object, explain: string }>}
+ */
+export async function editMermaidDiagram(payload) {
+  const res = await http.post('/ai/diagram/edit', payload);
+  return res.data;
+}

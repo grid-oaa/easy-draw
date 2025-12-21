@@ -27,6 +27,9 @@ export default {
       lastChangeAt: 0,
       lastMermaidAckAt: 0,
       pendingMermaidImportAt: 0,
+      lastMermaidInsertAckAt: 0,
+      pendingMermaidInsertAt: 0,
+      mermaidPluginReady: false,
     };
   },
   computed: {
@@ -119,6 +122,10 @@ export default {
         const data = action.payload && action.payload.data ? action.payload.data : '';
         if (!data) return;
         if (format === 'mermaid') {
+          if (!this.mermaidPluginReady) {
+            this.$message.error('Mermaid import plugin is not ready.');
+            return;
+          }
           const requestedAt = Date.now();
           this.pendingMermaidImportAt = requestedAt;
           this.postToEditor({
@@ -138,6 +145,35 @@ export default {
           return;
         }
         this.postToEditor({ action: 'import', format, data });
+        return;
+      }
+
+      if (action.type === 'insert') {
+        const format = action.payload && action.payload.format ? action.payload.format : 'xml';
+        const data = action.payload && action.payload.data ? action.payload.data : '';
+        if (!data) return;
+        if (format === 'mermaid') {
+          if (!this.mermaidPluginReady) {
+            this.$message.error('Mermaid insert plugin is not ready.');
+            return;
+          }
+          const requestedAt = Date.now();
+          this.pendingMermaidInsertAt = requestedAt;
+          this.postToEditor({
+            action: 'insertMermaid',
+            mermaid: data,
+          });
+          setTimeout(() => {
+            if (
+              this.pendingMermaidInsertAt === requestedAt &&
+              this.lastMermaidInsertAckAt < requestedAt
+            ) {
+              this.$message.error('Mermaid insert not acknowledged.');
+            }
+          }, 1200);
+          return;
+        }
+        this.postToEditor({ action: 'insert', format, data });
         return;
       }
     },
@@ -276,6 +312,20 @@ export default {
         if (!msg.success) {
           this.$message.error(msg.error || 'Mermaid import failed in draw.io.');
         }
+        return;
+      }
+
+      if (msg.event === 'insertMermaid') {
+        this.lastMermaidInsertAckAt = Date.now();
+        this.pendingMermaidInsertAt = 0;
+        if (!msg.success) {
+          this.$message.error(msg.error || 'Mermaid insert failed in draw.io.');
+        }
+        return;
+      }
+
+      if (msg.event === 'mermaid-import-ready') {
+        this.mermaidPluginReady = true;
         return;
       }
 

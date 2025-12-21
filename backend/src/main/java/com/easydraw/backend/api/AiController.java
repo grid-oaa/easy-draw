@@ -2,6 +2,7 @@ package com.easydraw.backend.api;
 
 import com.easydraw.backend.dto.GenerateDiagramRequest;
 import com.easydraw.backend.dto.GenerateDiagramResponse;
+import com.easydraw.backend.dto.UpdateMermaidRequest;
 import com.easydraw.backend.service.DiagramGenerationService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,11 @@ public class AiController {
   @PostMapping("/diagram")
   public GenerateDiagramResponse generateDiagram(@Valid @RequestBody GenerateDiagramRequest request) {
     return diagramGenerationService.generate(request);
+  }
+
+  @PostMapping("/diagram/edit")
+  public GenerateDiagramResponse editDiagram(@Valid @RequestBody UpdateMermaidRequest request) {
+    return diagramGenerationService.editMermaid(request);
   }
 
   /**

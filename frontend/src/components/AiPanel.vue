@@ -31,6 +31,15 @@
             <button class="iconBtn" type="button" title="Copy" @click="copy(m.code || m.text)">
               <i class="el-icon-document-copy" />
             </button>
+            <button
+              v-if="m.role === 'ai' && m.code"
+              class="iconBtn"
+              type="button"
+              title="Insert"
+              @click="insertCode(m.code)"
+            >
+              <i class="el-icon-plus" />
+            </button>
           </div>
         </div>
       </div>
@@ -47,6 +56,7 @@
       />
       <div class="composerBar">
         <input ref="file" class="file" type="file" @change="onFile" />
+        <el-button class="clearBtn" @click="confirmClear">清空</el-button>
         <el-button class="sendBtn" type="primary" :loading="aiBusy" @click="send">
           <i class="el-icon-position" />
           Send
@@ -59,13 +69,33 @@
 <script>
 import { mapState, mapMutations } from 'vuex';
 
-import { generateDiagram } from '@/api/ai';
+import { generateDiagram, editMermaidDiagram } from '@/api/ai';
+import { EMPTY_DRAWIO_XML } from '@/shared/drawio';
 
 function makeId() {
   return `m_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
 const CHAT_STORAGE_KEY = 'easy_draw_ai_messages_v1';
+const MERMAID_STORAGE_KEY = 'easy_draw_last_mermaid_v1';
+const EDIT_HINTS = [
+  '修改',
+  '调整',
+  '优化',
+  '完善',
+  '补充',
+  '增加',
+  '删除',
+  '替换',
+  '改',
+  '更新',
+  '修正',
+  'edit',
+  'update',
+  'modify',
+  'add',
+  'remove',
+];
 
 export default {
   name: 'AiPanel',
@@ -75,10 +105,12 @@ export default {
       mode: 'diagram',
       shapeMode: false,
       messages: [],
+      lastMermaid: '',
     };
   },
   created() {
     this.loadMessages();
+    this.loadLastMermaid();
   },
   computed: {
     ...mapState({
@@ -91,10 +123,12 @@ export default {
       this.prompt = '';
       this.messages = [];
       this.saveMessages();
+      this.lastMermaid = '';
+      this.saveLastMermaid();
     },
   },
   methods: {
-    ...mapMutations(['setAiBusy', 'setLastExplain', 'requestCanvasAction']),
+    ...mapMutations(['setAiBusy', 'setLastExplain', 'requestCanvasAction', 'setDirty']),
     noop() {},
     about() {
       this.$message.info('About: AI + draw.io prototype (frontend demo)');
@@ -128,8 +162,38 @@ export default {
     appendCode(role, content) {
       const code = content || '';
       this.messages.push({ id: makeId(), role, text: '', code });
+      this.lastMermaid = code;
+      this.saveLastMermaid();
       this.saveMessages();
       this.$nextTick(() => this.scrollToBottom());
+    },
+    shouldUseEdit(prompt) {
+      if (!prompt) return false;
+      const lower = prompt.toLowerCase();
+      return EDIT_HINTS.some((hint) => lower.includes(hint.toLowerCase()));
+    },
+    insertCode(code) {
+      if (!code) return;
+      this.requestCanvasAction({
+        type: 'insert',
+        payload: { format: 'mermaid', data: code },
+      });
+    },
+    confirmClear() {
+      this.$confirm('确认清空聊天记录和画布内容吗？', '提示', {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning',
+      })
+        .then(() => {
+          this.messages = [];
+          this.lastMermaid = '';
+          this.saveMessages();
+          this.saveLastMermaid();
+          this.requestCanvasAction({ type: 'load', payload: { xml: EMPTY_DRAWIO_XML } });
+          this.setDirty(false);
+        })
+        .catch(() => {});
     },
     scrollToBottom() {
       const el = this.$refs.chat;
@@ -149,6 +213,23 @@ export default {
         }
       } catch {
         // Ignore invalid localStorage content.
+      }
+    },
+    loadLastMermaid() {
+      try {
+        const raw = localStorage.getItem(MERMAID_STORAGE_KEY);
+        if (typeof raw === 'string') {
+          this.lastMermaid = raw;
+        }
+      } catch {
+        // Ignore invalid localStorage content.
+      }
+    },
+    saveLastMermaid() {
+      try {
+        localStorage.setItem(MERMAID_STORAGE_KEY, this.lastMermaid || '');
+      } catch {
+        // Ignore storage errors.
       }
     },
     saveMessages() {
@@ -196,11 +277,18 @@ export default {
 
       this.setAiBusy(true);
       try {
-        const res = await generateDiagram({
-          language: 'mermaid',
-          diagramType: '',
-          prompt: value,
-        });
+        const useEdit = this.lastMermaid && this.shouldUseEdit(value);
+        const res = useEdit
+          ? await editMermaidDiagram({
+              diagramType: '',
+              prompt: value,
+              mermaid: this.lastMermaid,
+            })
+          : await generateDiagram({
+              language: 'mermaid',
+              diagramType: '',
+              prompt: value,
+            });
 
         if (!res || !res.content) throw new Error('Empty result');
 
@@ -412,6 +500,10 @@ export default {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+}
+.clearBtn {
+  border-radius: 16px;
+  padding: 8px 12px;
 }
 .toggleWrap {
   padding-left: 4px;
