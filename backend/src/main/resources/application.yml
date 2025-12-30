@@ -1,13 +1,36 @@
 server:
   port: 8080
 spring:
+  config:
+    import: optional:file:./.env.properties,optional:file:./backend/.env.properties
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration
+      - org.springframework.ai.autoconfigure.chat.client.ChatClientAutoConfiguration
   application:
     name: easy-draw-backend
   profiles:
     include: local
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:}
+      chat:
+        options:
+          model: ${OPENAI_MODEL:}
+          temperature: ${OPENAI_TEMPERATURE:}
+          max-tokens: ${OPENAI_MAX_TOKENS:}
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics
 
+easy-draw:
+  ai:
+    client: spring-ai
+    provider: ${AI_PROVIDER:openai}
+    allow-request-config: ${AI_ALLOW_REQUEST_CONFIG:true}
+    model: ${AI_DEFAULT_MODEL:}
+    temperature: ${AI_DEFAULT_TEMPERATURE:}
+    max-tokens: ${AI_DEFAULT_MAX_TOKENS:}

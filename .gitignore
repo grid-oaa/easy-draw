@@ -9,3 +9,7 @@
 /.idea/workspace.xml
 /.idea/inspectionProfiles/Project_Default.xml
 /.idea/compiler.xml
+
+# local env files
+/backend/.env
+/backend/.env.properties

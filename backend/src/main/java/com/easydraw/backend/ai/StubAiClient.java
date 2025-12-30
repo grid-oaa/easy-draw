@@ -2,13 +2,15 @@ package com.easydraw.backend.ai;
 
 import com.easydraw.backend.diagram.DiagramLanguage;
 import com.easydraw.backend.dto.ModelConfig;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Component;
 
 /**
- * 本地/无模型时的兜底实现。若配置了 bigmodel.api-key，会同时存在 Stub 与 BigModel，
- * 由于 BigModel 标注了 @Primary，默认会注入大模型；否则使用 Stub。
+ * 本地/无模型时的兜底实现。
+ * 当未启用 Spring AI 或 legacy-http 客户端时使用。
  */
 @Component
+@ConditionalOnMissingBean(AiClient.class)
 public class StubAiClient implements AiClient {
 
   @Override

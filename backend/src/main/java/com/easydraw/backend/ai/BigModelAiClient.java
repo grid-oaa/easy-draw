@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -16,7 +16,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 @Component
-@Primary
+@ConditionalOnProperty(name = "easy-draw.ai.client", havingValue = "legacy-http")
 public class BigModelAiClient implements AiClient {
 
   private static final Logger log = LoggerFactory.getLogger(BigModelAiClient.class);
