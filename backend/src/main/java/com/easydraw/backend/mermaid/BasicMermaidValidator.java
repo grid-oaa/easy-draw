@@ -19,7 +19,8 @@ public class BasicMermaidValidator implements MermaidValidator {
 
     String trimmed = mermaid.trim();
     if (!looksLikeMermaidHeader(trimmed)) {
-      errors.add(DiagramError.of("HEADER_MISSING", "缺少 Mermaid 图表头（例如 flowchart TD / sequenceDiagram"));
+      errors.add(
+          DiagramError.of("HEADER_MISSING", "缺少 Mermaid 图表头（例如 flowchart TD / sequenceDiagram）"));
     }
 
     if (countChar(trimmed, '[') != countChar(trimmed, ']')) {
@@ -55,12 +56,15 @@ public class BasicMermaidValidator implements MermaidValidator {
           || line.startsWith("erdiagram")) {
         return true;
       }
-      // 只检查第一条非空非 fence �?      break;
+      // 只检查第一条非空非 fence 行
+      break;
     }
 
     // 兜底：在全文中找到任意合法头
     String lower = text.toLowerCase();
-    return lower.contains("flowchart") || lower.contains("sequencediagram") || lower.contains("statediagram");
+    return lower.contains("flowchart")
+        || lower.contains("sequencediagram")
+        || lower.contains("statediagram");
   }
 
   private int countChar(String text, char c) {
@@ -71,5 +75,3 @@ public class BasicMermaidValidator implements MermaidValidator {
     return count;
   }
 }
-
-

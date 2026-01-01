@@ -50,4 +50,12 @@ public class StubAiClient implements AiClient {
           D -->|失败| F[提示修复/重试]
         """;
   }
+
+  @Override
+  public String generateWithSystemPrompt(
+      String systemPrompt, String userPrompt, ModelConfig modelConfig) {
+    return """
+        {"action":"modifyStyle","target":"selected","operations":{"strokeWidth":{"op":"increase","value":2}}}
+        """;
+  }
 }

@@ -5,4 +5,6 @@ import com.easydraw.backend.dto.ModelConfig;
 
 public interface AiClient {
   String generate(DiagramLanguage language, String diagramType, String prompt, ModelConfig modelConfig);
+
+  String generateWithSystemPrompt(String systemPrompt, String userPrompt, ModelConfig modelConfig);
 }

@@ -35,13 +35,54 @@ public class SpringAiClient implements AiClient {
       DiagramLanguage language, String diagramType, String prompt, ModelConfig modelConfig) {
     String provider = modelRouter.resolveProvider(modelConfig);
     if (!isOpenAiCompatible(provider)) {
-      throw new IllegalStateException("不支持的模型提供方: " + provider);
+      throw new IllegalStateException("不支持的模型提供方 " + provider);
     }
 
     EffectiveConfig config = resolveConfig(modelConfig);
     String mergedPrompt = buildPrompt(language, diagramType, prompt);
     OpenAiChatOptions options = modelRouter.resolveOptions(modelConfig);
 
+    return callChatModel(config, options, systemPrompt(language), mergedPrompt, provider);
+  }
+
+  @Override
+  public String generateWithSystemPrompt(
+      String systemPrompt, String userPrompt, ModelConfig modelConfig) {
+    String provider = modelRouter.resolveProvider(modelConfig);
+    if (!isOpenAiCompatible(provider)) {
+      throw new IllegalStateException("不支持的模型提供方 " + provider);
+    }
+
+    EffectiveConfig config = resolveConfig(modelConfig);
+    OpenAiChatOptions options = modelRouter.resolveOptions(modelConfig);
+    return callChatModel(config, options, systemPrompt, userPrompt, provider);
+  }
+
+  private Prompt buildChatPrompt(
+      DiagramLanguage language, String mergedPrompt, OpenAiChatOptions options) {
+    List<Message> messages =
+        List.of(new SystemMessage(systemPrompt(language)), new UserMessage(mergedPrompt));
+    if (options == null) {
+      return new Prompt(messages);
+    }
+    return new Prompt(messages, options);
+  }
+
+  private Prompt buildChatPrompt(
+      String systemPrompt, String userPrompt, OpenAiChatOptions options) {
+    List<Message> messages = List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt));
+    if (options == null) {
+      return new Prompt(messages);
+    }
+    return new Prompt(messages, options);
+  }
+
+  private String callChatModel(
+      EffectiveConfig config,
+      OpenAiChatOptions options,
+      String systemPrompt,
+      String userPrompt,
+      String provider) {
     try {
       OpenAiApi api =
           new OpenAiApi(
@@ -53,7 +94,7 @@ public class SpringAiClient implements AiClient {
               WebClient.builder(),
               RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
       OpenAiChatModel chatModel = new OpenAiChatModel(api);
-      Prompt chatPrompt = buildChatPrompt(language, mergedPrompt, options);
+      Prompt chatPrompt = buildChatPrompt(systemPrompt, userPrompt, options);
       String content = chatModel.call(chatPrompt).getResult().getOutput().getText();
       if (content == null || content.isBlank()) {
         throw new IllegalStateException("大模型未返回内容");
@@ -61,18 +102,8 @@ public class SpringAiClient implements AiClient {
       return content.trim();
     } catch (Exception e) {
       log.error("Spring AI 调用异常, provider={}", provider, e);
-      throw new IllegalStateException("调用大模型异常: " + e.getMessage(), e);
+      throw new IllegalStateException("调用大模型异常 " + e.getMessage(), e);
     }
-  }
-
-  private Prompt buildChatPrompt(
-      DiagramLanguage language, String mergedPrompt, OpenAiChatOptions options) {
-    List<Message> messages =
-        List.of(new SystemMessage(systemPrompt(language)), new UserMessage(mergedPrompt));
-    if (options == null) {
-      return new Prompt(messages);
-    }
-    return new Prompt(messages, options);
   }
 
   private EffectiveConfig resolveConfig(ModelConfig modelConfig) {

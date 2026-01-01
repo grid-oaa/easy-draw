@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="stage">
     <div class="canvas">
       <iframe
@@ -30,6 +30,8 @@ export default {
       lastMermaidInsertAckAt: 0,
       pendingMermaidInsertAt: 0,
       mermaidPluginReady: false,
+      pendingStylePreset: null,
+      pendingInsertStylePreset: null,
       pendingSaveFormat: '',
     };
   },
@@ -55,7 +57,7 @@ export default {
       url.searchParams.set('libraries', '1');
       url.searchParams.set('plugins', '1');
       url.searchParams.set('p', 'mermaid-import');
-      url.searchParams.set('dev', '1');
+      url.searchParams.set('lang', 'zh');
 
       return url.toString();
     },
@@ -121,17 +123,24 @@ export default {
       if (action.type === 'import') {
         const format = action.payload && action.payload.format ? action.payload.format : 'xml';
         const data = action.payload && action.payload.data ? action.payload.data : '';
+        const editable =
+          action.payload && typeof action.payload.editable === 'boolean'
+            ? action.payload.editable
+            : false;
         if (!data) return;
         if (format === 'mermaid') {
           if (!this.mermaidPluginReady) {
             this.$message.error('Mermaid import plugin is not ready.');
             return;
           }
+          this.pendingStylePreset =
+            action.payload && action.payload.stylePreset ? action.payload.stylePreset : null;
           const requestedAt = Date.now();
           this.pendingMermaidImportAt = requestedAt;
           this.postToEditor({
             action: 'importMermaid',
             mermaid: data,
+            options: { editable },
           });
           setTimeout(() => {
             if (
@@ -152,17 +161,24 @@ export default {
       if (action.type === 'insert') {
         const format = action.payload && action.payload.format ? action.payload.format : 'xml';
         const data = action.payload && action.payload.data ? action.payload.data : '';
+        const editable =
+          action.payload && typeof action.payload.editable === 'boolean'
+            ? action.payload.editable
+            : false;
         if (!data) return;
         if (format === 'mermaid') {
           if (!this.mermaidPluginReady) {
             this.$message.error('Mermaid insert plugin is not ready.');
             return;
           }
+          this.pendingInsertStylePreset =
+            action.payload && action.payload.stylePreset ? action.payload.stylePreset : null;
           const requestedAt = Date.now();
           this.pendingMermaidInsertAt = requestedAt;
           this.postToEditor({
             action: 'insertMermaid',
             mermaid: data,
+            options: { editable },
           });
           setTimeout(() => {
             if (
@@ -175,6 +191,16 @@ export default {
           return;
         }
         this.postToEditor({ action: 'insert', format, data });
+        return;
+      }
+
+      if (action.type === 'modifyStyle') {
+        if (!this.mermaidPluginReady) {
+          this.$message.error('样式修改插件未就绪。');
+          return;
+        }
+        const payload = action.payload || {};
+        this.postToEditor({ action: 'modifyStyle', ...payload });
         return;
       }
     },
@@ -312,6 +338,12 @@ export default {
         this.pendingMermaidImportAt = 0;
         if (!msg.success) {
           this.$message.error(msg.error || 'Mermaid import failed in draw.io.');
+          this.pendingStylePreset = null;
+          return;
+        }
+        if (this.pendingStylePreset) {
+          this.postToEditor({ action: 'modifyStyle', ...this.pendingStylePreset });
+          this.pendingStylePreset = null;
         }
         return;
       }
@@ -321,6 +353,22 @@ export default {
         this.pendingMermaidInsertAt = 0;
         if (!msg.success) {
           this.$message.error(msg.error || 'Mermaid insert failed in draw.io.');
+          this.pendingInsertStylePreset = null;
+          return;
+        }
+        if (this.pendingInsertStylePreset) {
+          this.postToEditor({ action: 'modifyStyle', ...this.pendingInsertStylePreset });
+          this.pendingInsertStylePreset = null;
+        }
+        return;
+      }
+
+      if (msg.event === 'modifyStyle') {
+        if (msg.status === 'ok') {
+          this.setDirty(true);
+          this.$message.success('操作成功');
+        } else {
+          this.$message.error(msg.error || '样式修改失败');
         }
         return;
       }

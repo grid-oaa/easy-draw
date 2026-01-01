@@ -1,4 +1,4 @@
-<template>
+ï»¿<template>
   <div class="topbar">
     <div class="left">
       <div class="brand">Easy Draw</div>
@@ -6,7 +6,7 @@
 
     <div class="right">
       <div class="meta">
-        <span class="dirty" v-if="dirty">Î´±£´æ</span>
+        <span class="dirty" v-if="dirty"></span>
       </div>
     </div>
   </div>

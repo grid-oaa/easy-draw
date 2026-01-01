@@ -24,3 +24,23 @@ export async function editMermaidDiagram(payload) {
   const res = await http.post('/ai/diagram/edit', payload);
   return res.data;
 }
+
+/**
+ * 生成样式修改指令（后端 /api/ai/style）
+ * @param {{ prompt: string, modelConfig?: object }} payload
+ * @returns {Promise<{ action: string, target: string, styles?: object, operations?: object }>}
+ */
+export async function generateStyleCommand(payload) {
+  const res = await http.post('/ai/style', payload);
+  return res.data;
+}
+
+/**
+ * 测试大模型连通性（后端 /api/ai/model/test）。
+ * @param {{ modelConfig: object, prompt?: string }} payload
+ * @returns {Promise<{ success: boolean, message: string, output?: string }>}
+ */
+export async function testModelConfig(payload) {
+  const res = await http.post('/ai/model/test', payload);
+  return res.data;
+}

@@ -22,6 +22,7 @@ public class BigModelAiClient implements AiClient {
   private static final Logger log = LoggerFactory.getLogger(BigModelAiClient.class);
 
   private final BigModelProperties props;
+
   public BigModelAiClient(BigModelProperties props) {
     this.props = props;
   }
@@ -47,6 +48,32 @@ public class BigModelAiClient implements AiClient {
             Map.of("role", "system", "content", systemPrompt(language)),
             Map.of("role", "user", "content", mergedPrompt)));
 
+    return callModel(client, body);
+  }
+
+  @Override
+  public String generateWithSystemPrompt(
+      String systemPrompt, String userPrompt, ModelConfig modelConfig) {
+    EffectiveConfig config = resolveConfig(modelConfig);
+    WebClient client =
+        WebClient.builder()
+            .baseUrl(config.baseUrl)
+            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + config.apiKey)
+            .build();
+
+    Map<String, Object> body = new HashMap<>();
+    body.put("model", config.model);
+    body.put(
+        "messages",
+        List.of(
+            Map.of("role", "system", "content", systemPrompt),
+            Map.of("role", "user", "content", userPrompt)));
+
+    return callModel(client, body);
+  }
+
+  private String callModel(WebClient client, Map<String, Object> body) {
     try {
       BigModelResponse resp =
           client
@@ -77,7 +104,7 @@ public class BigModelAiClient implements AiClient {
   private String buildPrompt(DiagramLanguage language, String diagramType, String prompt) {
     String type = diagramType == null ? "" : diagramType;
     return """
-        请使用纯 %s 语法输出一个图表，不要添加额外解释或包裹，确保语法可直接渲染。注意：业务描述如果使用的中文，图表也要使用中文描述。
+        请使用纯 %s 语法输出一个图表，不要添加额外解释或包裹，确保语法可直接渲染。注意：业务描述如果使用的是中文，图表也要使用中文描述。
         图表类型/方向偏好：%s
         业务描述：%s
         """

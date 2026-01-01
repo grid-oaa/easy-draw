@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draw.io Mermaid 集成示例</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        
+        .input-section {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        #mermaid-input {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        
+        .status-section {
+            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .status-section.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            display: block;
+        }
+        
+        .status-section.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            display: block;
+        }
+        
+        .status-section.info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            display: block;
+        }
+        
+        .iframe-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            display: block;
+        }
+        
+        .examples {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .examples h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .example-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .example-buttons button {
+            padding: 8px 16px;
+            background-color: #e9ecef;
+            color: #495057;
+            font-size: 13px;
+        }
+        
+        .example-buttons button:hover {
+            background-color: #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Draw.io Mermaid 集成示例</h1>
+        
+        <div class="input-section">
+            <label for="mermaid-input">Mermaid 文本：</label>
+            <textarea id="mermaid-input" placeholder="在此输入 Mermaid 语法...">flowchart TD
+    A[开始] --> B{判断条件}
+    B -->|是| C[执行操作1]
+    B -->|否| D[执行操作2]
+    C --> E[结束]
+    D --> E</textarea>
+        </div>
+        
+        <div class="options-section" style="margin-bottom: 15px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="editable-option" checked style="width: 18px; height: 18px;">
+                <span>生成可编辑的原生图形</span>
+            </label>
+            <div style="color: #6c757d; font-size: 12px; margin-top: 5px; margin-left: 26px;">
+                支持原生编辑的类型：流程图、时序图、类图、状态图、ER图、Git图、思维导图、用户旅程图<br>
+                不支持的类型（如甘特图、饼图）将自动生成 Mermaid 数据图形
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn-primary" onclick="generateDiagram()">生成图表</button>
+            <button class="btn-secondary" onclick="clearInput()">清空输入</button>
+        </div>
+        
+        <div id="status" class="status-section"></div>
+        
+        <!-- 样式修改测试区域 -->
+        <div class="input-section" style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e9ecef;">
+            <h2 style="color: #333; margin-bottom: 15px;">🎨 样式修改 API 测试</h2>
+            <label for="style-input">样式修改 JSON 指令：</label>
+            <textarea id="style-input" style="width: 100%; min-height: 150px; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 14px; resize: vertical; box-sizing: border-box;" placeholder='输入 JSON 格式的样式修改指令，例如：
+{
+  "action": "modifyStyle",
+  "target": "selected",
+  "styles": {
+    "fillColor": "#FF0000",
+    "strokeWidth": 3
+  }
+}'>{
+  "action": "modifyStyle",
+  "target": "selected",
+  "styles": {
+    "fillColor": "#FF6B6B",
+    "strokeColor": "#4ECDC4",
+    "strokeWidth": 3,
+    "rounded": 1
+  }
+}</textarea>
+            
+            <div class="button-group" style="margin-top: 15px;">
+                <button class="btn-primary" onclick="applyStyleModification()">应用样式修改</button>
+                <button class="btn-secondary" onclick="clearStyleInput()">清空输入</button>
+            </div>
+            
+            <div id="style-status" class="status-section"></div>
+            
+            <div class="examples" style="margin-top: 15px;">
+                <h3>📝 样式修改示例</h3>
+                <div class="example-buttons">
+                    <button onclick="loadStyleExample('changeColor')">改变颜色</button>
+                    <button onclick="loadStyleExample('thickenLines')">加粗线条</button>
+                    <button onclick="loadStyleExample('addShadow')">添加阴影</button>
+                    <button onclick="loadStyleExample('roundCorners')">圆角效果</button>
+                    <button onclick="loadStyleExample('changeFont')">修改字体</button>
+                    <button onclick="loadStyleExample('relativeOps')">相对操作</button>
+                    <button onclick="loadStyleExample('edgeArrows')">箭头样式</button>
+                    <button onclick="loadStyleExample('combined')">组合修改</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="iframe-container">
+            <iframe 
+                id="drawio-iframe"
+                src="/src/main/webapp/index.html?embed=1&proto=json&spin=1&ui=min&noSaveBtn=1&saveAndExit=0&noExitBtn=1&lang=zh"
+                title="Draw.io Editor">
+            </iframe>
+        </div>
+        
+        <div class="examples">
+            <h3>📝 示例模板</h3>
+            <div class="example-buttons">
+                <button onclick="loadExample('flowchart')">流程图</button>
+                <button onclick="loadExample('sequence')">时序图</button>
+                <button onclick="loadExample('class')">类图</button>
+                <button onclick="loadExample('state')">状态图</button>
+                <button onclick="loadExample('er')">ER图</button>
+                <button onclick="loadExample('gantt')">甘特图</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const iframe = document.getElementById('drawio-iframe');
+        const statusDiv = document.getElementById('status');
+        let iframeReady = false;
+        
+        // Mermaid 示例模板
+        const examples = {
+            flowchart: `flowchart TD
+    A[开始] --> B{判断条件}
+    B -->|是| C[执行操作1]
+    B -->|否| D[执行操作2]
+    C --> E[结束]
+    D --> E`,
+            
+            sequence: `sequenceDiagram
+    participant Alice
+    participant Bob
+    Alice->>Bob: 你好 Bob
+    Bob->>Alice: 你好 Alice
+    Alice->>Bob: 最近怎么样？
+    Bob->>Alice: 很好，谢谢！`,
+            
+            class: `classDiagram
+    class Animal {
+        +String name
+        +int age
+        +makeSound()
+    }
+    class Dog {
+        +String breed
+        +bark()
+    }
+    class Cat {
+        +String color
+        +meow()
+    }
+    Animal <|-- Dog
+    Animal <|-- Cat`,
+            
+            state: `stateDiagram-v2
+    [*] --> 待处理
+    待处理 --> 处理中: 开始处理
+    处理中 --> 已完成: 完成
+    处理中 --> 失败: 出错
+    失败 --> 待处理: 重试
+    已完成 --> [*]`,
+            
+            er: `erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE-ITEM : contains
+    CUSTOMER {
+        string name
+        string email
+        string phone
+    }
+    ORDER {
+        int orderNumber
+        date orderDate
+        string status
+    }
+    LINE-ITEM {
+        string productCode
+        int quantity
+        float price
+    }`,
+            
+            gantt: `gantt
+    title 项目开发计划
+    dateFormat  YYYY-MM-DD
+    section 需求分析
+    需求收集           :a1, 2024-01-01, 7d
+    需求评审           :after a1, 3d
+    section 设计阶段
+    架构设计           :2024-01-11, 5d
+    详细设计           :2024-01-16, 7d
+    section 开发阶段
+    前端开发           :2024-01-23, 14d
+    后端开发           :2024-01-23, 14d`
+        };
+        
+        // 监听来自 draw.io 的消息
+        window.addEventListener('message', function(evt) {
+            // 确保消息来自 iframe
+            if (evt.source !== iframe.contentWindow) {
+                return;
+            }
+            
+            let data;
+            try {
+                data = typeof evt.data === 'string' ? JSON.parse(evt.data) : evt.data;
+            } catch (e) {
+                return;
+            }
+            
+            console.log('Received message from draw.io:', data);
+            
+            // 处理 iframe 就绪事件 - 需要发送 load 消息来初始化编辑器
+            if (data.event === 'init') {
+                console.log('Draw.io init received, sending load message...');
+                // 发送空白文档来初始化编辑器
+                iframe.contentWindow.postMessage(JSON.stringify({
+                    action: 'load',
+                    xml: '<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel>',
+                    autosave: 0
+                }), '*');
+            }
+            
+            // 处理加载完成事件 - 动态加载插件
+            if (data.event === 'load') {
+                console.log('Draw.io loaded, injecting mermaid-import plugin...');
+                // 通过 script 标签动态加载插件到 iframe
+                var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                var script = iframeDoc.createElement('script');
+                script.src = '/src/main/webapp/plugins/mermaid-import.js';
+                script.onload = function() {
+                    console.log('Mermaid import plugin script loaded');
+                };
+                script.onerror = function() {
+                    console.error('Failed to load mermaid import plugin');
+                };
+                iframeDoc.head.appendChild(script);
+            }
+            
+            // 处理插件就绪事件
+            if (data.event === 'mermaid-import-ready') {
+                iframeReady = true;
+                showStatus('Draw.io 已就绪，可以开始生成图表', 'info');
+                console.log('Draw.io iframe ready with mermaid plugin');
+            }
+            
+            // 处理 generateMermaid 响应
+            if (data.event === 'generateMermaid') {
+                if (data.status === 'ok') {
+                    const cellCount = data.data?.cellCount || 0;
+                    showStatus(`✅ 图表生成成功！插入了 ${cellCount} 个图形元素`, 'success');
+                    console.log('Diagram generated successfully:', data);
+                } else {
+                    showStatus(`❌ 图表生成失败：${data.error || '未知错误'}`, 'error');
+                    console.error('Diagram generation failed:', data);
+                }
+            }
+            
+            // 处理 modifyStyle 响应
+            if (data.event === 'modifyStyle') {
+                if (data.status === 'ok') {
+                    const modifiedCount = data.data?.modifiedCount || 0;
+                    showStyleStatus(`✅ 操作成功！修改了 ${modifiedCount} 个元素`, 'success');
+                    console.log('Style modification successful:', data);
+                } else {
+                    showStyleStatus(`❌ 样式修改失败：${data.error || '未知错误'} (${data.errorCode || 'UNKNOWN'})`, 'error');
+                    console.error('Style modification failed:', data);
+                }
+            }
+        });
+        
+        // 生成图表
+        function generateDiagram() {
+            const mermaidText = document.getElementById('mermaid-input').value.trim();
+            const editable = document.getElementById('editable-option').checked;
+            
+            if (!mermaidText) {
+                showStatus('⚠️ 请输入 Mermaid 文本', 'error');
+                return;
+            }
+            
+            if (!iframeReady) {
+                showStatus('⏳ Draw.io 正在加载，请稍候...', 'info');
+                // 等待 iframe 就绪后重试
+                setTimeout(generateDiagram, 1000);
+                return;
+            }
+            
+            const modeText = editable ? '原生可编辑图形' : 'Mermaid 数据图形';
+            showStatus(`🔄 正在生成${modeText}...`, 'info');
+            
+            // 发送消息到 draw.io iframe
+            iframe.contentWindow.postMessage(JSON.stringify({
+                action: 'generateMermaid',
+                mermaid: mermaidText,
+                options: {
+                    position: { x: 50, y: 50 },
+                    select: true,
+                    center: false,
+                    editable: editable  // true = 原生图形, false = Mermaid 数据
+                }
+            }), '*');
+        }
+        
+        // 显示状态消息
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status-section ' + type;
+            
+            // 自动隐藏成功消息
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // 清空输入
+        function clearInput() {
+            document.getElementById('mermaid-input').value = '';
+            statusDiv.style.display = 'none';
+        }
+        
+        // 加载示例
+        function loadExample(type) {
+            if (examples[type]) {
+                document.getElementById('mermaid-input').value = examples[type];
+                showStatus(`已加载 ${type} 示例`, 'info');
+            }
+        }
+        
+        // 支持 Ctrl+Enter 快捷键生成图表
+        document.getElementById('mermaid-input').addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                generateDiagram();
+            }
+        });
+        
+        // ========================================
+        // 样式修改功能
+        // ========================================
+        
+        // 样式修改示例
+        const styleExamples = {
+            changeColor: {
+                action: 'modifyStyle',
+                target: 'selected',
+                styles: {
+                    fillColor: '#FF6B6B',
+                    strokeColor: '#4ECDC4'
+                }
+            },
+            
+            thickenLines: {
+                action: 'modifyStyle',
+                target: 'selected',
+                operations: {
+                    strokeWidth: { op: 'increase', value: 2 }
+                }
+            },
+            
+            addShadow: {
+                action: 'modifyStyle',
+                target: 'selected',
+                styles: {
+                    shadow: 1,
+                    rounded: 1
+                }
+            },
+            
+            roundCorners: {
+                action: 'modifyStyle',
+                target: 'selected',
+                styles: {
+                    rounded: 1,
+                    arcSize: 20
+                }
+            },
+            
+            changeFont: {
+                action: 'modifyStyle',
+                target: 'selected',
+                styles: {
+                    fontSize: 16,
+                    fontColor: '#2C3E50',
+                    fontFamily: 'Arial'
+                }
+            },
+            
+            relativeOps: {
+                action: 'modifyStyle',
+                target: 'selected',
+                operations: {
+                    fontSize: { op: 'increase', value: 4 },
+                    strokeWidth: { op: 'multiply', value: 1.5 },
+                    opacity: { op: 'decrease', value: 10 }
+                }
+            },
+            
+            edgeArrows: {
+                action: 'modifyStyle',
+                target: 'edges',
+                styles: {
+                    startArrow: 'classic',
+                    endArrow: 'block',
+                    strokeWidth: 3,
+                    strokeColor: '#E74C3C'
+                }
+            },
+            
+            combined: {
+                action: 'modifyStyle',
+                target: 'selected',
+                styles: {
+                    fillColor: '#3498DB',
+                    strokeColor: '#2C3E50',
+                    rounded: 1,
+                    shadow: 1
+                },
+                operations: {
+                    strokeWidth: { op: 'set', value: 3 },
+                    fontSize: { op: 'increase', value: 2 }
+                }
+            }
+        };
+        
+        // 应用样式修改
+        function applyStyleModification() {
+            const styleInput = document.getElementById('style-input').value.trim();
+            
+            if (!styleInput) {
+                showStyleStatus('⚠️ 请输入样式修改 JSON 指令', 'error');
+                return;
+            }
+            
+            if (!iframeReady) {
+                showStyleStatus('⏳ Draw.io 正在加载，请稍候...', 'info');
+                setTimeout(applyStyleModification, 1000);
+                return;
+            }
+            
+            let styleCommand;
+            try {
+                styleCommand = JSON.parse(styleInput);
+            } catch (e) {
+                showStyleStatus('❌ JSON 格式错误：' + e.message, 'error');
+                return;
+            }
+            
+            // 验证必需字段
+            if (!styleCommand.action) {
+                showStyleStatus('❌ 缺少 action 字段', 'error');
+                return;
+            }
+            
+            showStyleStatus('🔄 正在应用样式修改...', 'info');
+            
+            // 发送消息到 draw.io iframe
+            iframe.contentWindow.postMessage(JSON.stringify(styleCommand), '*');
+        }
+        
+        // 显示样式修改状态消息
+        function showStyleStatus(message, type) {
+            const styleStatusDiv = document.getElementById('style-status');
+            styleStatusDiv.textContent = message;
+            styleStatusDiv.className = 'status-section ' + type;
+            
+            // 自动隐藏成功消息
+            if (type === 'success') {
+                setTimeout(() => {
+                    styleStatusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // 清空样式输入
+        function clearStyleInput() {
+            document.getElementById('style-input').value = '';
+            const styleStatusDiv = document.getElementById('style-status');
+            styleStatusDiv.style.display = 'none';
+        }
+        
+        // 加载样式修改示例
+        function loadStyleExample(type) {
+            if (styleExamples[type]) {
+                document.getElementById('style-input').value = JSON.stringify(styleExamples[type], null, 2);
+                showStyleStatus(`已加载 ${getExampleName(type)} 示例`, 'info');
+            }
+        }
+        
+        // 获取示例名称
+        function getExampleName(type) {
+            const names = {
+                changeColor: '改变颜色',
+                thickenLines: '加粗线条',
+                addShadow: '添加阴影',
+                roundCorners: '圆角效果',
+                changeFont: '修改字体',
+                relativeOps: '相对操作',
+                edgeArrows: '箭头样式',
+                combined: '组合修改'
+            };
+            return names[type] || type;
+        }
+        
+        // 支持 Ctrl+Enter 快捷键应用样式修改
+        document.getElementById('style-input').addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                applyStyleModification();
+            }
+        });
+    </script>
+</body>
+</html>
