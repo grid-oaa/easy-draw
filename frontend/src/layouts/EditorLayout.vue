@@ -156,19 +156,25 @@ export default {
   position: fixed;
   top: 50%;
   right: 0;
-  transform: translateY(-50%);
+  transform: translate(50%, -50%);
   z-index: 5;
-  padding: 6px 8px;
+  padding: 10px 8px;
   border-radius: 12px 0 0 12px;
   border: 1px solid #e5e5e5;
   border-right: none;
-  background: #fff;
-  color: #333;
+  background: #2f343b;
+  color: #f5f5f5;
   font-size: 12px;
   cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
-.aiToggle:hover {
-  border-color: #c9c9c9;
+.aiToggle:hover,
+.aiToggle:focus,
+.aiToggle:focus-visible {
+  border-color: #e5e5e5;
+  opacity: 0.3;
+  transform: translate(50%, -50%);
 }
 .content.aiClosed .aiToggle {
   right: 0;

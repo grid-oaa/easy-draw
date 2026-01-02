@@ -356,6 +356,7 @@ export default {
           this.pendingInsertStylePreset = null;
           return;
         }
+        this.setDirty(true);
         if (this.pendingInsertStylePreset) {
           this.postToEditor({ action: 'modifyStyle', ...this.pendingInsertStylePreset });
           this.pendingInsertStylePreset = null;

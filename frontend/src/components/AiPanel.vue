@@ -3,11 +3,18 @@
     <div class="topbar">
       <div class="brand">
         <div class="logo">ED</div>
-        <div class="title">easy draw</div>
+        <div class="title">Easy Draw</div>
       </div>
       <div class="topActions">
-        <el-button type="text" icon="el-icon-setting" @click="openModelConfig">Model</el-button>
-        <el-button type="text" icon="el-icon-more" @click="openStylePreset" />
+        <el-button
+          class="topActionsBtn"
+          type="text"
+          icon="el-icon-setting"
+          @click="openModelConfig"
+        >
+          Model
+        </el-button>
+        <el-button class="topActionsBtn" type="text" icon="el-icon-more" @click="openStylePreset" />
       </div>
     </div>
 
@@ -104,7 +111,7 @@
           @click="send"
         >
           <i class="el-icon-position" />
-          Send
+          发送
         </el-button>
       </div>
     </div>
@@ -159,6 +166,7 @@
         <div class="formRow">
           <div class="formLabel">绘图风格</div>
           <el-select v-model="stylePresetId" placeholder="选择绘图风格">
+            <el-option label="默认（draw.io）" value="" />
             <el-option
               v-for="preset in stylePresets"
               :key="preset.id"
@@ -169,9 +177,7 @@
         </div>
       </el-form>
       <span slot="footer" class="dialog-footer">
-        <el-button type="primary" :disabled="!stylePresetId" @click="applyStylePreset">
-          保存
-        </el-button>
+        <el-button type="primary" @click="applyStylePreset">保存</el-button>
       </span>
     </el-dialog>
   </div>
@@ -503,6 +509,25 @@ export default {
         operations: preset.operations || undefined,
       };
     },
+    getDefaultStyleResetPayload() {
+      return {
+        target: 'all',
+        // 清理预设可能覆盖的样式键，回退到 draw.io 默认样式
+        styles: {
+          fillColor: null,
+          strokeColor: null,
+          fontColor: null,
+          strokeWidth: null,
+          rounded: null,
+          shadow: null,
+          dashed: null,
+          opacity: null,
+          arcSize: null,
+          startArrow: null,
+          endArrow: null,
+        },
+      };
+    },
     openStylePreset() {
       this.stylePresetVisible = true;
     },
@@ -521,6 +546,17 @@ export default {
       this.$message.success('模型配置已保存');
     },
     applyStylePreset() {
+      if (!this.stylePresetId) {
+        this.saveStylePreset();
+        if (this.hasCanvasContent) {
+          const payload = this.getDefaultStyleResetPayload();
+          this.requestCanvasAction({ type: 'modifyStyle', payload });
+        } else {
+          this.$message.success('已切换为默认绘图风格');
+        }
+        this.stylePresetVisible = false;
+        return;
+      }
       const preset = this.getActiveStylePreset();
       if (!preset) {
         this.$message.warning('请选择预设风格');
@@ -528,7 +564,7 @@ export default {
       }
       this.saveStylePreset();
       if (!this.hasCanvasContent) {
-        this.$message.info('已保存绘图风格，后续生成会自动应用');
+        this.$message.success('已保存绘图风格');
         this.stylePresetVisible = false;
         return;
       }
@@ -711,7 +747,7 @@ export default {
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(value);
-          this.$message.success('Copied');
+          this.$message.success('复制成功');
           return;
         }
       } catch {
@@ -728,9 +764,9 @@ export default {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        this.$message.success('Copied');
+        this.$message.success('复制成功');
       } catch {
-        this.$message.error('Copy failed');
+        this.$message.error('复制失败');
       }
     },
     async send() {
@@ -920,9 +956,9 @@ export default {
 .quickBtn {
   padding: 10px 12px;
   border-radius: 16px;
-  border: none;
-  background: #1f2937;
-  color: #fff;
+  border: 1px solid #dcdfe6;
+  background: #fff;
+  color: #303133;
   font-size: 13px;
   cursor: pointer;
 }
@@ -982,11 +1018,12 @@ export default {
   color: #666;
 }
 .iconBtn {
-  border: none;
-  background: transparent;
+  border: 1px solid #dcdfe6;
+  background: #fff;
   cursor: pointer;
   padding: 2px;
-  color: #666;
+  color: #303133;
+  border-radius: 6px;
 }
 
 .composer {
@@ -1038,6 +1075,51 @@ export default {
 .sendBtn {
   border-radius: 16px;
   padding: 9px 14px;
+}
+.panel /deep/ .el-dialog {
+  background: #fff;
+}
+.panel /deep/ .el-button {
+  background: #fff;
+  border-color: #dcdfe6;
+  color: #303133;
+}
+.panel /deep/ .el-button.is-disabled,
+.panel /deep/ .el-button.is-disabled:hover,
+.panel /deep/ .el-button.is-disabled:focus {
+  background: #fff;
+  border-color: #dcdfe6;
+  color: #303133;
+  opacity: 0.5;
+}
+.panel /deep/ .el-button--text {
+  background: #fff;
+  border-color: #dcdfe6;
+  color: #303133;
+}
+.panel /deep/ .el-button--text:hover,
+.panel /deep/ .el-button--text:focus {
+  background: #fff;
+  border-color: #dcdfe6;
+  color: #303133;
+}
+.panel /deep/ .topActionsBtn {
+  border-color: transparent;
+  background: transparent;
+}
+.panel /deep/ .topActionsBtn:hover,
+.panel /deep/ .topActionsBtn:focus {
+  border-color: transparent;
+  background: transparent;
+}
+.panel /deep/ .el-button--primary,
+.panel /deep/ .el-button.is-active {
+  background: #1f2937;
+  border-color: #1f2937;
+  color: #fff;
+}
+.panel /deep/ .el-button-group > .el-button {
+  border-color: #dcdfe6;
 }
 .spin {
   display: inline-block;
