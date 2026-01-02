@@ -27,6 +27,13 @@ public class DiagramGenerationServiceImpl implements DiagramGenerationService {
     this.strategyMap = m;
   }
 
+
+  /**
+   * 生成图表主流程：选择语言策略 -> 调用模型生成 -> 清洗与校验 -> 封装响应。
+   *
+   * @param request 生成请求
+   * @return 生成结果
+   */
   @Override
   public GenerateDiagramResponse generate(GenerateDiagramRequest request) {
     DiagramLanguage language = DiagramLanguage.fromCode(request.getLanguage());
@@ -81,6 +88,11 @@ public class DiagramGenerationServiceImpl implements DiagramGenerationService {
         language.getCode(), request.getDiagramType(), content, validation, explain);
   }
 
+  /**
+   * 去除```mermaid```部分
+   * @param raw
+   * @return
+   */
   private String stripCodeFence(String raw) {
     if (raw == null) return "";
     String trimmed = raw.trim();

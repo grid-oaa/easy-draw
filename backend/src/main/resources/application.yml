@@ -3,8 +3,6 @@ app:
 server:
   port: 8080
 spring:
-  config:
-    import: optional:file:./.env.properties,optional:file:./backend/.env.properties
   autoconfigure:
     exclude:
       - org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration

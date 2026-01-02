@@ -12,7 +12,6 @@
 - 后端 AI 调用：统一使用 `BigModelAiClient` 通过 WebClient 调 OpenAI 兼容协议（chat/completions）。
 - 动态模型配置：`GenerateDiagramRequest`/`UpdateMermaidRequest` 增加 `modelConfig`，每次请求传入后端，按需构建 WebClient。
 - Mermaid 清洗与校验：`MermaidSanitizer` 负责去围栏、规范 header，避免 draw.io 导入失败。
-- 编辑模式触发：前端根据关键词 + 最近 Mermaid 判断是否走“编辑接口”。
 - draw.io 导入：使用本地 draw.io + 自定义插件 `mermaid-import.js`，通过 postMessage 触发导入与插入，并监听 ACK。
 - 本地 draw.io 部署：使用 `npx serve` 直接提供 draw.io 源码目录，前端通过 `.env.local` 指定嵌入地址。
 
@@ -31,7 +30,7 @@
   - `VUE_APP_DRAWIO_BASE_URL=http://localhost:8085/src/main/webapp`
 
 ### 2. 后端
-- 运行 Spring Boot 后端（建议 IDEA/VSCode 直接启动或 Maven 启动）
+- 运行 Spring Boot 后端
 - API 入口
   - 生成：`POST /api/ai/diagram`
   - 编辑：`POST /api/ai/diagram/edit`

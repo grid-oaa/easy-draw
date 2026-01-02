@@ -1,15 +1,59 @@
-/.idea/compiler.xml
-/.idea/easy-draw.iml
-/.idea/encodings.xml
-/.idea/jarRepositories.xml
-/.idea/misc.xml
-/.idea/modules.xml
-/.idea/prettier.xml
-/.idea/vcs.xml
-/.idea/workspace.xml
-/.idea/inspectionProfiles/Project_Default.xml
-/.idea/compiler.xml
-
-# local env files
+/.idea
+/.serena
+/.vscode
+# 本地环境文件
 /backend/.env
 /backend/.env.properties
+
+# backend: Maven / 构建产物
+/backend/target/
+/backend/*.log
+
+# backend: IntelliJ IDEA
+/backend/.idea/
+/backend/*.iml
+/backend/*.ipr
+/backend/*.iws
+
+# backend: Eclipse
+/backend/.project
+/backend/.classpath
+/backend/.settings/
+
+# backend: VS Code
+/backend/.vscode/
+
+# backend: OS 文件
+/backend/.DS_Store
+/backend/Thumbs.db
+
+# backend: Java 产物
+/backend/*.class
+/backend/*.jar
+/backend/*.war
+/backend/*.ear
+
+# backend: Spring / 工具
+/backend/.springBeans
+
+# backend: 本地覆盖
+/backend/application-local.yml
+
+# frontend: 依赖与构建产物
+/frontend/node_modules
+/frontend/dist
+
+# frontend: OS 文件
+/frontend/.DS_Store
+
+# frontend: 本地环境文件
+/frontend/.env.local
+/frontend/.env.*.local
+
+# frontend: 日志
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+
+# frontend: 本地开发目录
+/frontend/.devserver/

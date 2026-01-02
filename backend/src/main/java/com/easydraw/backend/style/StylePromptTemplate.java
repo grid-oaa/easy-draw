@@ -1,9 +1,12 @@
 package com.easydraw.backend.style;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -23,12 +26,12 @@ public class StylePromptTemplate {
   }
 
   private String loadTemplate() {
-    // 从 doc/STYLE_PROMPT 读取样式修改提示词
-    Path path = Path.of("doc", "STYLE_PROMPT");
-    try {
-      return Files.readString(path, StandardCharsets.UTF_8).trim();
+    // 从 classpath 读取模板文件
+    ClassPathResource resource = new ClassPathResource("STYLE_PROMPT");
+    try (InputStream in = resource.getInputStream()) {
+      return new String(in.readAllBytes(), StandardCharsets.UTF_8).trim();
     } catch (IOException e) {
-      throw new IllegalStateException("无法读取 STYLE_PROMPT: " + path.toAbsolutePath(), e);
+      throw new IllegalStateException("无法读取 STYLE_PROMPT(classpath)", e);
     }
   }
 }

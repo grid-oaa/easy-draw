@@ -9,11 +9,20 @@ public class GenerateDiagramRequest {
    */
   private String language;
 
+  /**
+   *
+   */
   private String diagramType;
 
+  /**
+   * 用户输入
+   */
   @NotBlank
   private String prompt;
 
+  /**
+   * 大模型配置
+   */
   private ModelConfig modelConfig;
 
   public String getLanguage() {
