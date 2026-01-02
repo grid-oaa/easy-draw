@@ -46,10 +46,6 @@
 # frontend: OS 文件
 /frontend/.DS_Store
 
-# frontend: 本地环境文件
-/frontend/.env.local
-/frontend/.env.*.local
-
 # frontend: 日志
 /frontend/npm-debug.log*
 /frontend/yarn-debug.log*
