@@ -829,9 +829,13 @@ export default {
 
         if (res.language === 'mermaid' && res.content) {
           const preset = this.getActiveStylePreset();
-          const stylePreset = this.getStylePresetPayload(preset);
+          const actionType = this.hasCanvasContent ? 'insert' : 'import';
+          const stylePreset =
+            actionType === 'insert'
+              ? this.getStylePresetPayloadForInsert(preset)
+              : this.getStylePresetPayload(preset);
           this.requestCanvasAction({
-            type: 'import',
+            type: actionType,
             payload: {
               format: 'mermaid',
               data: res.content,
