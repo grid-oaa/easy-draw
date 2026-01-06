@@ -1,6 +1,8 @@
 package com.easydraw.backend.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class UpdateMermaidRequest {
 
@@ -9,7 +11,8 @@ public class UpdateMermaidRequest {
   @NotBlank private String mermaid;
 
   private String diagramType;
-
+  @NotNull
+  @Valid
   private ModelConfig modelConfig;
 
   public String getPrompt() {
@@ -44,3 +47,6 @@ public class UpdateMermaidRequest {
     this.modelConfig = modelConfig;
   }
 }
+
+
+

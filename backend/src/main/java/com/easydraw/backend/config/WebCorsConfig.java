@@ -9,7 +9,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebCorsConfig implements WebMvcConfigurer {
 
-  @Value("${app.allowed-origins:https://easy-draw.vercel.app}")
+  @Value("${app.allowed-origins:http://localhost:5173}")
   private String allowedOrigins;
 
   @Override
@@ -21,7 +21,7 @@ public class WebCorsConfig implements WebMvcConfigurer {
             .toArray(String[]::new);
 
     if (origins.length == 0) {
-      origins = new String[] {"https://easy-draw.vercel.app"};
+      origins = new String[] {"http://localhost:5173"};
     }
 
     registry

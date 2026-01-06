@@ -9,30 +9,22 @@ import org.springframework.stereotype.Component;
 @Component
 public class AiModelRouter {
 
-  private final EasyDrawAiProperties props;
-
-  public AiModelRouter(EasyDrawAiProperties props) {
-    this.props = props;
-  }
-
   public String resolveProvider(ModelConfig modelConfig) {
-    ModelConfig effectiveConfig = props.isAllowRequestConfig() ? modelConfig : null;
-    String provider =
-        pick(effectiveConfig == null ? null : effectiveConfig.getProvider(), props.getProvider());
-    return provider == null ? "openai" : provider;
+    if (modelConfig == null) {
+      return "openai";
+    }
+    String provider = modelConfig.getProvider();
+    return provider == null || provider.trim().isEmpty() ? "openai" : provider;
   }
 
   public OpenAiChatOptions resolveOptions(ModelConfig modelConfig) {
-    ModelConfig effectiveConfig = modelConfig;
-    if (!props.isAllowRequestConfig()) {
-      effectiveConfig = null;
+    if (modelConfig == null) {
+      return null;
     }
 
-    String model = pick(effectiveConfig == null ? null : effectiveConfig.getModel(), props.getModel());
-    Double temperature =
-        pick(effectiveConfig == null ? null : effectiveConfig.getTemperature(), props.getTemperature());
-    Integer maxTokens =
-        pick(effectiveConfig == null ? null : effectiveConfig.getMaxTokens(), props.getMaxTokens());
+    String model = modelConfig.getModel();
+    Double temperature = modelConfig.getTemperature();
+    Integer maxTokens = modelConfig.getMaxTokens();
 
     if (model == null && temperature == null && maxTokens == null) {
       return null;
@@ -50,9 +42,5 @@ public class AiModelRouter {
       wrapper.setPropertyValue("maxTokens", maxTokens);
     }
     return options;
-  }
-
-  private static <T> T pick(T primary, T fallback) {
-    return primary == null ? fallback : primary;
   }
 }

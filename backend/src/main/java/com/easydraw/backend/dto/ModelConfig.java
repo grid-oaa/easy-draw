@@ -1,9 +1,15 @@
 package com.easydraw.backend.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 public class ModelConfig {
 
+  @NotBlank(message = "baseUrl is required")
   private String baseUrl;
+
+  @NotBlank(message = "apiKey is required")
   private String apiKey;
+
   private String model;
   private String provider;
   private Double temperature;

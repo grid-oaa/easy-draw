@@ -7,5 +7,4 @@ import com.easydraw.backend.dto.UpdateMermaidRequest;
 public interface DiagramGenerationService {
   GenerateDiagramResponse generate(GenerateDiagramRequest request);
 
-  GenerateDiagramResponse editMermaid(UpdateMermaidRequest request);
 }

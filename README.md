@@ -1,54 +1,98 @@
-# Easy Draw 项目总结
+﻿# Easy Draw
 
-## 功能清单
-- AI 聊天生成流程图：在聊天框输入业务描述，生成 Mermaid 并渲染到左侧 draw.io 画布。
-- Mermaid 持续编辑：当已有图表时，支持“修改/调整/优化”等指令进行增量编辑。
-- draw.io 嵌入与交互：支持导入 Mermaid、插入 Mermaid 到画布空白区域、导出/保存 drawio 与 PNG。
-- 消息持久化：聊天记录与最近 Mermaid 结果保存到 LocalStorage，刷新不丢。
-- UI 交互优化：聊天区可收起、复制/插入按钮、清空对话与画布、顶部精简。
-- 用户模型配置：前端允许用户输入 baseUrl/apiKey/model，后端按请求动态调用对应模型。
+Easy Draw 是一个 AI + diagrams.net（draw.io）的在线绘图原型。
+右侧用自然语言描述业务，AI 生成 Mermaid。
+结果自动导入左侧 draw.io 画布继续编辑与导出。
+![系统界面.png](doc/assets/%E7%B3%BB%E7%BB%9F%E7%95%8C%E9%9D%A2.png)
 
-## 关键实现细节
-- 后端 AI 调用：统一使用 `BigModelAiClient` 通过 WebClient 调 OpenAI 兼容协议（chat/completions）。
-- 动态模型配置：`GenerateDiagramRequest`/`UpdateMermaidRequest` 增加 `modelConfig`，每次请求传入后端，按需构建 WebClient。
-- Mermaid 清洗与校验：`MermaidSanitizer` 负责去围栏、规范 header，避免 draw.io 导入失败。
-- draw.io 导入：使用本地 draw.io + 自定义插件 `mermaid-import.js`，通过 postMessage 触发导入与插入，并监听 ACK。
-- 本地 draw.io 部署：使用 `npx serve` 直接提供 draw.io 源码目录，前端通过 `.env.local` 指定嵌入地址。
+## 功能亮点
+- 文本生成图表：自然语言生成 Mermaid 图表代码
+- Mermaid 导入/插入：自动导入 draw.io 画布
+- 图表增量修改：对已有 Mermaid 做调整/优化
+- **样式修改能力：AI 指令 + 内置风格预设**
+- 本地保存与导出：支持 .drawio / PNG / SVG
+- 模型可配置：Base URL / API Key / Model
 
-## 项目难点
-- draw.io 嵌入与导入限制：官方 embed 不支持 import，需要自定义插件与消息协议。
-- Mermaid 兼容问题：模型生成的语法可能不符合 draw.io 解析规则，需要清洗/规范化。
-- 编辑流程一致性：增量修改要求保留原 ID 与方向，避免图形结构被重排。
-- 本地部署路径差异：本地 draw.io 的目录结构/路径需要与 iframe URL 对齐。
 
-## 部署与启动流程
-### 1. 本地 draw.io（前端嵌入）
-- 解压 draw.io 包到本机目录，例如 `D:\\dev\\drawio-29.2.9`
-- 启动静态服务（示例）
-  - `npx serve -l 8085`
-- 前端配置 `.env.local`
-  - `VUE_APP_DRAWIO_BASE_URL=http://localhost:8085/src/main/webapp`
+## 样式修改能力（核心特色）
+本项目不止生成图表，还提供可控的样式修改能力。
+用于统一风格与批量美化。
 
-### 2. 后端
-- 运行 Spring Boot 后端
-- API 入口
-  - 生成：`POST /api/ai/diagram`
-  - 编辑：`POST /api/ai/diagram/edit`
+- AI 样式指令：自然语言生成结构化 JSON
+- 内置风格预设：多套风格一键应用
+- 作用范围可控：选中/全部/仅连线/仅节点
+- 编辑流程融合：生成后继续修改样式
 
-### 3. 前端
-- 安装依赖并启动
-  - `npm install`
-  - `npm run serve`
-- 首次使用需在界面中填写模型配置（baseUrl/apiKey/model）
+## 整体架构
+- 前端：Vue 2 + Element UI + Vuex + axios
+- 后端：Spring Boot 3 + Spring AI（OpenAI 兼容）
+- 绘图引擎：diagrams.net iframe + mermaid-import 插件
 
-## 目录与关键文件
-- 后端
-  - `backend/src/main/java/com/easydraw/backend/ai/BigModelAiClient.java`
-  - `backend/src/main/java/com/easydraw/backend/service/impl/DiagramGenerationServiceImpl.java`
-  - `backend/src/main/java/com/easydraw/backend/mermaid/MermaidSanitizer.java`
-- 前端
-  - `frontend/src/components/AiPanel.vue`
-  - `frontend/src/components/CanvasStage.vue`
-  - `frontend/src/layouts/EditorLayout.vue`
-  - `frontend/.env.local`
+## 目录结构
+```
+.
+├─ frontend/   # 前端（Vue 2）
+├─ backend/    # 后端（Spring Boot）
+└─ doc/        # 部署与集成文档
+```
 
+## 快速开始（本地开发）
+### 1) 准备 draw.io 资源（必需）
+方式 A（本地开发）：
+- 资源在 frontend/public/drawio
+- 设置 VUE_APP_DRAWIO_BASE_URL=/drawio
+方式 B（独立部署）：
+- 部署 draw.io 静态站点并包含 plugins/mermaid-import.js
+- 设置 VUE_APP_DRAWIO_BASE_URL=https://your-drawio.example.com
+### 2) 启动后端
+```
+cd backend
+mvn spring-boot:run
+```
+默认端口 8080，默认上下文路径为 /drawio。
+### 3) 启动前端
+```
+cd frontend
+npm install
+npm run serve
+```
+如果后端上下文为 /drawio，请二选一：
+- 方案 1：设置 VUE_APP_API_BASE_URL=http://localhost:8080/drawio/api
+- 方案 2：修改 frontend/vue.config.js 代理到 http://localhost:8080/drawio
+- 方案 3：启动后端时覆盖上下文路径为 /
+### 4) 首次使用
+- 右侧点击 Model 填写 Base URL / API Key / Model
+- 输入描述生成图表
+
+## API 说明
+所有 AI 接口必须传 modelConfig（baseUrl/apiKey 必填）。
+- POST /api/ai/diagram：生成 Mermaid/PlantUML
+  - 参考请求：
+
+```json
+{
+  "language": "mermaid",
+  "diagramType": "",
+  "prompt": "画一个订单支付流程",
+  "modelConfig": {
+    "baseUrl": "https://api.openai.com/v1",
+    "apiKey": "sk-***",
+    "model": "gpt-4o-mini"
+  }
+}
+```
+
+## 关键实现说明
+- Mermaid 清洗：去除围栏与噪声，提升导入成功率
+- Mermaid 插件：通过 postMessage 调用 mermaid-import
+- 样式指令：/api/ai/style 返回结构化 JSON
+
+## 配置项摘要
+前端（.env.local 或环境变量）：
+- VUE_APP_DRAWIO_BASE_URL：draw.io 地址（需支持 mermaid-import）
+- VUE_APP_API_BASE_URL：后端地址
+后端获取请求中的 modelConfig（baseUrl/apiKey/model，可选 provider/temperature/maxTokens）。
+
+## 限制
+- 依赖 mermaid-import 插件，官方 embed 可能无法导入
+- 模型密钥保存在浏览器 LocalStorage，请勿在公共环境使用

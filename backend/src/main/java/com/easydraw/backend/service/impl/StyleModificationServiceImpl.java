@@ -30,11 +30,14 @@ public class StyleModificationServiceImpl implements StyleModificationService {
 
   @Override
   public ModifyStyleCommand generate(StyleModifyRequest request) {
+    // 将用户自然语言转为结构化样式指令提示词
     String systemPrompt = promptTemplate.render(request.getPrompt());
     String userPrompt = request.getPrompt();
+    // 调用模型生成样式修改指令（JSON 文本）
     String raw =
         aiClient.generateWithSystemPrompt(systemPrompt, userPrompt, request.getModelConfig());
 
+    // 解析并校验指令，避免无效或危险操作
     ModifyStyleCommand command = parseCommand(raw);
     validator.validate(command);
     return command;

@@ -43,22 +43,11 @@ public class AiController {
     return diagramGenerationService.generate(request);
   }
 
-  @PostMapping("/diagram/edit")
-  @Deprecated
-  public GenerateDiagramResponse editDiagram(@Valid @RequestBody UpdateMermaidRequest request) {
-    return diagramGenerationService.editMermaid(request);
-  }
-
   /**
-   * 兼容入口：仅返回 Mermaid（后续前端统一改用 /api/ai/diagram）。
+   * 样式修改
+   * @param request
+   * @return
    */
-  @PostMapping("/mermaid")
-  @Deprecated
-  public GenerateDiagramResponse generateMermaid(@Valid @RequestBody GenerateDiagramRequest request) {
-    request.setLanguage("mermaid");
-    return diagramGenerationService.generate(request);
-  }
-
   @PostMapping("/style")
   public ModifyStyleCommand modifyStyle(@Valid @RequestBody StyleModifyRequest request) {
     return styleModificationService.generate(request);

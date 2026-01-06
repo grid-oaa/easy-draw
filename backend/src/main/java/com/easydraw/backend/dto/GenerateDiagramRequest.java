@@ -1,6 +1,8 @@
 package com.easydraw.backend.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class GenerateDiagramRequest {
 
@@ -23,6 +25,8 @@ public class GenerateDiagramRequest {
   /**
    * 大模型配置
    */
+  @NotNull
+  @Valid
   private ModelConfig modelConfig;
 
   public String getLanguage() {
@@ -57,3 +61,6 @@ public class GenerateDiagramRequest {
     this.modelConfig = modelConfig;
   }
 }
+
+
+

@@ -15,11 +15,9 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(name = "easy-draw.ai.client", havingValue = "spring-ai", matchIfMissing = true)
 public class SpringAiClient implements AiClient {
 
   private static final Logger log = LoggerFactory.getLogger(SpringAiClient.class);
