@@ -33,6 +33,9 @@ export default {
       pendingStylePreset: null,
       pendingInsertStylePreset: null,
       pendingSaveFormat: '',
+      syncXmlTimer: null,
+      syncXmlDebounceTimer: null,
+      pendingXmlSyncRequest: false,
     };
   },
   computed: {
@@ -75,9 +78,22 @@ export default {
     // eslint-disable-next-line no-console
     console.log('[drawio] iframe src:', this.iframeSrc);
     window.addEventListener('message', this.onMessage);
+
+    // 定期同步 XML 内容（捕获 DrawIO 原生导入等操作）
+    this.syncXmlTimer = setInterval(() => {
+      this.requestXmlSync();
+    }, 3000); // 每3秒同步一次
   },
   beforeDestroy() {
     window.removeEventListener('message', this.onMessage);
+    if (this.syncXmlTimer) {
+      clearInterval(this.syncXmlTimer);
+      this.syncXmlTimer = null;
+    }
+    if (this.syncXmlDebounceTimer) {
+      clearTimeout(this.syncXmlDebounceTimer);
+      this.syncXmlDebounceTimer = null;
+    }
   },
   methods: {
     ...mapMutations([
@@ -94,6 +110,18 @@ export default {
       if (!frame || !frame.contentWindow) return;
       const targetOrigin = this.drawioOrigin || '*';
       frame.contentWindow.postMessage(JSON.stringify(message), targetOrigin);
+    },
+    requestXmlSync() {
+      if (!this.ready) return;
+      if (this.pendingXmlSyncRequest) return; // 避免重复请求
+
+      this.pendingXmlSyncRequest = true;
+      this.postToEditor({ action: 'export', format: 'xmlpng' });
+
+      // 3秒后重置标志（防止卡住）
+      setTimeout(() => {
+        this.pendingXmlSyncRequest = false;
+      }, 3000);
     },
     runCanvasAction(action) {
       if (!action || !action.type) return;
@@ -330,6 +358,14 @@ export default {
       if (msg.event === 'change') {
         this.lastChangeAt = Date.now();
         this.setDirty(true);
+
+        // 防抖同步 XML 到 store
+        if (this.syncXmlDebounceTimer) {
+          clearTimeout(this.syncXmlDebounceTimer);
+        }
+        this.syncXmlDebounceTimer = setTimeout(() => {
+          this.requestXmlSync();
+        }, 500);
         return;
       }
 
@@ -424,6 +460,16 @@ export default {
       }
 
       if (msg.event === 'export') {
+        // 处理 XML 同步请求（xmlpng 格式包含 XML）
+        if (msg.format === 'xmlpng' && typeof msg.xml === 'string' && msg.xml) {
+          this.pendingXmlSyncRequest = false;
+          // 只在 XML 内容确实变化时更新
+          if (msg.xml !== this.drawioXml) {
+            this.setDrawioXml(msg.xml);
+          }
+          return; // XML 同步不需要下载
+        }
+
         this.downloadExport(msg);
         if (this.pendingSaveFormat === 'png') {
           this.pendingSaveFormat = '';
