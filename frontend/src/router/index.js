@@ -10,7 +10,7 @@ export default new Router({
   // 中文注释：与 publicPath 保持一致，确保 /draw 前缀下的路由可用
   base: process.env.BASE_URL,
   routes: [
-    { path: '/', redirect: '/editor' },
-    { path: '/editor', name: 'editor', component: EditorView },
+    // 中文注释：让 /draw 直接展示编辑器，不再跳转 URL
+    { path: '/', name: 'editor', component: EditorView, alias: '/editor' },
   ],
 });
