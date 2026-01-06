@@ -4,7 +4,7 @@ module.exports = {
     port: 5173,
     proxy: {
       '/drawio/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8081',
         changeOrigin: true,
       },
     },
