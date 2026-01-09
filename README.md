@@ -1,6 +1,7 @@
 # Easy Draw
 
- :rocket:**在线体验地址**：http://123.57.223.239/draw/（模型key只会记录在本地浏览器的localstorage）
+ :rocket:**在线体验地址**：http://123.57.223.239/draw/
+>模型key只会记录在本地浏览器的localstorage，放心使用
 
 Easy Draw 是 AI + draw.io 的在线绘图原型。
 使用自然语言描述业务 / 修改图形，生成drawio可编辑图形、Mermaid格式图形。
@@ -53,3 +54,4 @@ npm run serve
 ### 4) 首次使用
 - 右侧点击 Model 填写 Base URL / API Key / Model
 - 输入描述生成图表 / 修改样式
+
