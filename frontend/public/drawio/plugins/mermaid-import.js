@@ -1156,6 +1156,13 @@ Draw.loadPlugin(function(ui)
 		var targetResult = getTargetCells(data.target, graph);
 		
 		if (targetResult.error) {
+			if (targetResult.errorCode === STYLE_ERROR_CODES.NO_TARGET_CELLS) {
+				// 无目标图形时允许先设置样式，不提示错误
+				log('info', 'No target cells found, skip style modification');
+				sendStyleResponse(evt, true, null, null, { modifiedCount: 0 });
+				return;
+			}
+
 			log('error', 'Failed to get target cells', targetResult);
 			sendStyleResponse(evt, false, targetResult.error, targetResult.errorCode);
 			return;
