@@ -53,3 +53,5 @@
 
 # frontend: 本地开发目录
 /frontend/.devserver/
+AGENTS.md
+CLAUDE.md
